@@ -1,0 +1,4 @@
+name: NexoAPI
+version: '1.0-SNAPSHOT'
+main: com.hanielcota.nexoapi.NexoAPI
+api-version: '1.21'
