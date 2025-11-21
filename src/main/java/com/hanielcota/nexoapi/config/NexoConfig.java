@@ -8,7 +8,9 @@ import lombok.NonNull;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Asynchronous configuration API for Minecraft plugins.
@@ -22,8 +24,11 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class NexoConfig {
 
+    private static final Map<String, ConfigPath> PATH_CACHE = new ConcurrentHashMap<>();
+
     private final InMemoryConfigStore store;
     private final AsyncFileWriter writer;
+    private volatile boolean dirty = false;
 
     /**
      * Creates a new NexoConfig instance from a file.
@@ -45,7 +50,7 @@ public final class NexoConfig {
      * The file will be created if it doesn't exist.
      *
      * @param dataFolder the directory where the file will be created
-     * @param fileName the name of the configuration file
+     * @param fileName   the name of the configuration file
      */
     public NexoConfig(@NonNull File dataFolder, @NonNull String fileName) {
         var disk = ConfigFile.prepare(dataFolder, fileName);
@@ -61,7 +66,7 @@ public final class NexoConfig {
      * Creates a new NexoConfig instance using the plugin's data folder.
      * If the file exists as a resource in the plugin, it will be copied.
      *
-     * @param plugin the JavaPlugin instance
+     * @param plugin   the JavaPlugin instance
      * @param fileName the name of the configuration file
      */
     public NexoConfig(@NonNull JavaPlugin plugin, @NonNull String fileName) {
@@ -76,35 +81,76 @@ public final class NexoConfig {
     /**
      * Retrieves a value from the configuration.
      * Returns the default value if the path doesn't exist.
+     * <p>
+     * ConfigPath instances are cached to reduce object allocations.
+     * </p>
      *
-     * @param path the configuration path (e.g., "database.host")
+     * @param path         the configuration path (e.g., "database.host")
      * @param defaultValue the default value to return if the path doesn't exist
-     * @param <T> the type of the value
+     * @param <T>          the type of the value
      * @return the configuration value or the default value
      */
     public <T> T get(@NonNull String path, T defaultValue) {
-        return store.retrieve(new ConfigPath(path), defaultValue);
+        ConfigPath configPath = PATH_CACHE.computeIfAbsent(path, ConfigPath::new);
+        return store.retrieve(configPath, defaultValue);
     }
 
     /**
      * Sets a value in the configuration.
      * The value will be stored in memory and persisted when {@link #save()} is called.
+     * <p>
+     * ConfigPath instances are cached to reduce object allocations.
+     * This operation marks the configuration as dirty, requiring a save.
+     * </p>
      *
-     * @param path the configuration path (e.g., "database.host")
+     * @param path  the configuration path (e.g., "database.host")
      * @param value the value to set
      */
     public void set(@NonNull String path, Object value) {
-        store.update(new ConfigPath(path), value);
+        ConfigPath configPath = PATH_CACHE.computeIfAbsent(path, ConfigPath::new);
+        store.update(configPath, value);
+        dirty = true;
     }
 
     /**
      * Saves the configuration to the file asynchronously.
      * This method returns immediately and performs the file write on a background thread.
+     * <p>
+     * If the configuration hasn't been modified since the last save, this method
+     * returns a completed future without performing any I/O operations.
+     * </p>
      *
-     * @return a CompletableFuture that completes when the file is saved
+     * @return a CompletableFuture that completes when the file is saved and dirty flag is reset
      */
     public CompletableFuture<Void> save() {
+        if (!dirty) return CompletableFuture.completedFuture(null);
+
         var data = store.serialize();
-        return writer.write(data);
+        CompletableFuture<Void> writeFuture = writer.write(data);
+
+        // Return the chained future so dirty flag reset happens before completion
+        return writeFuture.thenRun(() -> dirty = false)
+                .exceptionally(throwable -> {
+                    // Keep dirty flag true if write failed
+                    return null;
+                });
+    }
+
+    /**
+     * Forces a save operation even if the configuration hasn't been modified.
+     * Useful for ensuring the file is written regardless of the dirty flag.
+     *
+     * @return a CompletableFuture that completes when the file is saved and dirty flag is reset
+     */
+    public CompletableFuture<Void> forceSave() {
+        var data = store.serialize();
+        CompletableFuture<Void> writeFuture = writer.write(data);
+
+        // Return the chained future so dirty flag reset happens before completion
+        return writeFuture.thenRun(() -> dirty = false)
+                .exceptionally(throwable -> {
+                    // Keep dirty flag true if write failed
+                    return null;
+                });
     }
 }

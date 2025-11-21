@@ -59,6 +59,9 @@ public record ConfigFile(@NonNull File file) {
 
     private static void ensureExists(File file) {
         if (file.exists()) {
+            if (file.isDirectory()) {
+                throw new IllegalArgumentException("Path exists but is a directory, not a file: " + file.getAbsolutePath());
+            }
             return;
         }
         create(file);
@@ -66,6 +69,9 @@ public record ConfigFile(@NonNull File file) {
 
     private static void ensureExists(JavaPlugin plugin, String name, File file) {
         if (file.exists()) {
+            if (file.isDirectory()) {
+                throw new IllegalArgumentException("Path exists but is a directory, not a file: " + file.getAbsolutePath());
+            }
             return;
         }
         create(plugin, name, file);
@@ -73,30 +79,57 @@ public record ConfigFile(@NonNull File file) {
 
     @SneakyThrows
     private static void create(File file) {
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs()) {
-            throw new IOException("Critical failure: Could not create directory " + parent.getAbsolutePath());
+        // Check if file already exists (was checked in ensureExists, but double-check for safety)
+        if (file.exists()) {
+            // Already verified in ensureExists that it's not a directory
+            return;
         }
 
+        // Create parent directories if needed
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IOException("""
+                    Critical failure: Could not create directory %s
+                    """.formatted(parent.getAbsolutePath()));
+        }
+
+        // Create the file
         if (!file.createNewFile()) {
-            throw new IOException("Critical failure: Operating system prevented creation of file " + file.getName());
+            throw new IOException("""
+                    Critical failure: Could not create file %s
+                    File may already exist or system permissions may prevent creation.
+                    """.formatted(file.getAbsolutePath()));
         }
     }
 
     @SneakyThrows
     private static void create(JavaPlugin plugin, String name, File file) {
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs()) {
-            throw new IOException("Critical failure: Could not create directory " + parent.getAbsolutePath());
+        // Check if file already exists (was checked in ensureExists, but double-check for safety)
+        if (file.exists()) {
+            // Already verified in ensureExists that it's not a directory
+            return;
         }
 
+        // Create parent directories if needed
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IOException("""
+                    Critical failure: Could not create directory %s
+                    """.formatted(parent.getAbsolutePath()));
+        }
+
+        // Try to copy from plugin resources first
         if (plugin.getResource(name) != null) {
             plugin.saveResource(name, false);
             return;
         }
 
+        // Create the file if it doesn't exist
         if (!file.createNewFile()) {
-            throw new IOException("Critical failure: Operating system prevented creation of file " + file.getName());
+            throw new IOException("""
+                    Critical failure: Could not create file %s
+                    File may already exist or system permissions may prevent creation.
+                    """.formatted(file.getAbsolutePath()));
         }
     }
 }
