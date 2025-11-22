@@ -128,10 +128,8 @@ public final class NexoConfig {
         var data = store.serialize();
         CompletableFuture<Void> writeFuture = writer.write(data);
 
-        // Return the chained future so dirty flag reset happens before completion
         return writeFuture.thenRun(() -> dirty = false)
                 .exceptionally(throwable -> {
-                    // Keep dirty flag true if write failed
                     return null;
                 });
     }
@@ -146,10 +144,8 @@ public final class NexoConfig {
         var data = store.serialize();
         CompletableFuture<Void> writeFuture = writer.write(data);
 
-        // Return the chained future so dirty flag reset happens before completion
         return writeFuture.thenRun(() -> dirty = false)
                 .exceptionally(throwable -> {
-                    // Keep dirty flag true if write failed
                     return null;
                 });
     }
