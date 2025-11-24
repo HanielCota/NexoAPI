@@ -38,6 +38,11 @@ tasks.withType(JavaCompile).configureEach {
     options.release.set(21)
 }
 
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+    failOnError = false
+}
+
 
 
 publishing {
