@@ -3,6 +3,7 @@ package com.hanielcota.nexoapi.config;
 import com.hanielcota.nexoapi.config.file.AsyncFileWriter;
 import com.hanielcota.nexoapi.config.file.ConfigFile;
 import com.hanielcota.nexoapi.config.path.ConfigPath;
+import com.hanielcota.nexoapi.config.persistence.ConfigPersistence;
 import com.hanielcota.nexoapi.config.storage.InMemoryConfigStore;
 import lombok.NonNull;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -27,8 +28,7 @@ public final class NexoConfig {
     private static final Map<String, ConfigPath> PATH_CACHE = new ConcurrentHashMap<>();
 
     private final InMemoryConfigStore store;
-    private final AsyncFileWriter writer;
-    private volatile boolean dirty = false;
+    private volatile ConfigPersistence persistence;
 
     /**
      * Creates a new NexoConfig instance from a file.
@@ -40,7 +40,8 @@ public final class NexoConfig {
         var disk = ConfigFile.prepare(file);
 
         this.store = new InMemoryConfigStore();
-        this.writer = new AsyncFileWriter(disk.file());
+        var writer = new AsyncFileWriter(disk.file());
+        this.persistence = ConfigPersistence.with(writer);
 
         store.load(disk.file());
     }
@@ -56,7 +57,8 @@ public final class NexoConfig {
         var disk = ConfigFile.prepare(dataFolder, fileName);
 
         this.store = new InMemoryConfigStore();
-        this.writer = new AsyncFileWriter(disk.file());
+        var writer = new AsyncFileWriter(disk.file());
+        this.persistence = ConfigPersistence.with(writer);
 
         store.load(disk.file());
     }
@@ -73,7 +75,8 @@ public final class NexoConfig {
         var disk = ConfigFile.prepare(plugin, fileName);
 
         this.store = new InMemoryConfigStore();
-        this.writer = new AsyncFileWriter(disk.file());
+        var writer = new AsyncFileWriter(disk.file());
+        this.persistence = ConfigPersistence.with(writer);
 
         store.load(disk.file());
     }
@@ -109,7 +112,11 @@ public final class NexoConfig {
     public void set(@NonNull String path, Object value) {
         ConfigPath configPath = PATH_CACHE.computeIfAbsent(path, ConfigPath::new);
         store.update(configPath, value);
-        dirty = true;
+        markDirty();
+    }
+
+    private synchronized void markDirty() {
+        persistence = persistence.markDirty();
     }
 
     /**
@@ -123,15 +130,23 @@ public final class NexoConfig {
      * @return a CompletableFuture that completes when the file is saved and dirty flag is reset
      */
     public CompletableFuture<Void> save() {
-        if (!dirty) return CompletableFuture.completedFuture(null);
+        if (!persistence.isDirty()) {
+            return CompletableFuture.completedFuture(null);
+        }
 
+        return performSave();
+    }
+
+    private CompletableFuture<Void> performSave() {
         var data = store.serialize();
-        CompletableFuture<Void> writeFuture = writer.write(data);
+        var writeFuture = persistence.write(data);
 
-        return writeFuture.thenRun(() -> dirty = false)
-                .exceptionally(throwable -> {
-                    return null;
-                });
+        return writeFuture.thenRun(this::markClean)
+                .exceptionally(throwable -> null);
+    }
+
+    private synchronized void markClean() {
+        persistence = persistence.markClean();
     }
 
     /**
@@ -141,12 +156,6 @@ public final class NexoConfig {
      * @return a CompletableFuture that completes when the file is saved and dirty flag is reset
      */
     public CompletableFuture<Void> forceSave() {
-        var data = store.serialize();
-        CompletableFuture<Void> writeFuture = writer.write(data);
-
-        return writeFuture.thenRun(() -> dirty = false)
-                .exceptionally(throwable -> {
-                    return null;
-                });
+        return performSave();
     }
 }

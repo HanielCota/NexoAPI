@@ -1,16 +1,25 @@
-package com.hanielcota.nexoapi.item.property;
+package com.hanielcota.nexoapi.item.amount;
 
 /**
- * Represents a validated item stack amount.
- * Ensures the amount is within valid Minecraft stack limits (1-64).
+ * Represents a validated amount for an item stack.
+ * Ensures the value is within valid Minecraft limits (1–64).
  *
- * @param value the item amount (1-64)
+ * @param amount the item amount (1-64)
  * @since 1.0.0
  */
-public record ItemAmount(int value) {
+public record ItemAmount(int amount) {
 
-    private static final int MIN_AMOUNT = 1;
-    private static final int MAX_STACK = 64;
+    private static final int MIN = 1;
+    private static final int MAX = 64;
+
+    public ItemAmount {
+        if (amount < MIN) {
+            throw new IllegalArgumentException("Item amount cannot be less than 1.");
+        }
+        if (amount > MAX) {
+            throw new IllegalArgumentException("Item amount cannot exceed 64.");
+        }
+    }
 
     /**
      * Creates a new ItemAmount with the specified value.
@@ -20,12 +29,6 @@ public record ItemAmount(int value) {
      * @throws IllegalArgumentException if amount is less than 1 or greater than 64
      */
     public static ItemAmount of(int amount) {
-        if (amount < MIN_AMOUNT) {
-            throw new IllegalArgumentException("Item amount cannot be less than 1.");
-        }
-        if (amount > MAX_STACK) {
-            throw new IllegalArgumentException("Item amount cannot exceed 64.");
-        }
         return new ItemAmount(amount);
     }
 
@@ -36,5 +39,14 @@ public record ItemAmount(int value) {
      */
     public static ItemAmount one() {
         return new ItemAmount(1);
+    }
+
+    /**
+     * Creates an ItemAmount with the maximum value (64).
+     *
+     * @return an ItemAmount instance with value 64
+     */
+    public static ItemAmount max() {
+        return new ItemAmount(MAX);
     }
 }

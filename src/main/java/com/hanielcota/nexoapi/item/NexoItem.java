@@ -1,8 +1,9 @@
 package com.hanielcota.nexoapi.item;
 
-import com.hanielcota.nexoapi.item.property.ItemAmount;
-import com.hanielcota.nexoapi.item.property.ItemLore;
+import com.hanielcota.nexoapi.item.amount.ItemAmount;
+import com.hanielcota.nexoapi.item.lore.ItemLore;
 import com.hanielcota.nexoapi.text.MiniMessageText;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -16,14 +17,11 @@ import java.util.function.Consumer;
 /**
  * Builder-style API for creating and customizing ItemStacks.
  * Supports MiniMessage format for item names and lore.
- * <p>
- * This class provides a fluent interface for building items with proper formatting.
- * </p>
  *
- * @param itemStack the underlying ItemStack being built
+ * @param stack the underlying ItemStack being built
  * @since 1.0.0
  */
-public record NexoItem(@NotNull ItemStack itemStack) {
+public record NexoItem(@NotNull ItemStack stack) {
 
     /**
      * Creates a new NexoItem from a material.
@@ -64,7 +62,7 @@ public record NexoItem(@NotNull ItemStack itemStack) {
      * @return this NexoItem instance for method chaining
      */
     public NexoItem withAmount(@NotNull ItemAmount amount) {
-        itemStack.setAmount(amount.value());
+        stack.setAmount(amount.amount());
         return this;
     }
 
@@ -77,11 +75,19 @@ public record NexoItem(@NotNull ItemStack itemStack) {
      */
     public NexoItem withName(@Nullable String name) {
         return applyMeta(meta -> {
-            var component = MiniMessageText.of(name).toComponent();
-            var cleanComponent = component.decoration(TextDecoration.ITALIC, false);
-
-            meta.displayName(cleanComponent);
+            Component parsed = parseName(name);
+            Component cleaned = stripItalic(parsed);
+            meta.displayName(cleaned);
         });
+    }
+
+    private Component parseName(@Nullable String name) {
+        MiniMessageText text = MiniMessageText.of(name);
+        return text.toComponent();
+    }
+
+    private Component stripItalic(Component component) {
+        return component.decoration(TextDecoration.ITALIC, false);
     }
 
     /**
@@ -92,13 +98,14 @@ public record NexoItem(@NotNull ItemStack itemStack) {
      * @return this NexoItem instance for method chaining
      */
     public NexoItem withLore(@Nullable List<String> lines) {
-        final var lore = ItemLore.from(lines);
+        var lore = ItemLore.from(lines);
 
         return applyMeta(meta -> {
             if (!lore.hasContent()) {
                 return;
             }
-            meta.lore(lore.lines());
+
+            meta.lore(lore.components());
         });
     }
 
@@ -108,18 +115,18 @@ public record NexoItem(@NotNull ItemStack itemStack) {
      * @return the configured ItemStack
      */
     public ItemStack build() {
-        return itemStack;
+        return stack;
     }
 
     private NexoItem applyMeta(Consumer<ItemMeta> consumer) {
-        final var meta = itemStack.getItemMeta();
+        ItemMeta meta = stack.getItemMeta();
 
         if (meta == null) {
             return this;
         }
 
         consumer.accept(meta);
-        itemStack.setItemMeta(meta);
+        stack.setItemMeta(meta);
         return this;
     }
 }

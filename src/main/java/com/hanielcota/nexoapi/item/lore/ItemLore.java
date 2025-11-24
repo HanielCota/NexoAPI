@@ -1,4 +1,4 @@
-package com.hanielcota.nexoapi.item.amount;
+package com.hanielcota.nexoapi.item.lore;
 
 import com.hanielcota.nexoapi.text.MiniMessageText;
 import net.kyori.adventure.text.Component;
@@ -6,19 +6,18 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
- * Represents the lore (description lines) of an item.
- * Each line supports MiniMessage format and has italic decoration removed.
+ * Represents a list of formatted lore lines for an item.
+ * Uses MiniMessage formatting and removes italic decoration.
  *
- * @param lines the list of Component lines for the lore
+ * @param components the list of Component lines for the lore
  * @since 1.0.0
  */
-public record ItemLore(@NotNull List<Component> lines) {
+public record ItemLore(@NotNull List<Component> components) {
 
-    private static final ItemLore EMPTY = new ItemLore(Collections.emptyList());
+    private static final ItemLore EMPTY = new ItemLore(List.of());
 
     /**
      * Creates an empty ItemLore.
@@ -41,22 +40,20 @@ public record ItemLore(@NotNull List<Component> lines) {
             return EMPTY;
         }
 
-        final var components = parseComponents(rawLines);
-        return new ItemLore(components);
-    }
-
-    private static List<Component> parseComponents(List<String> rawLines) {
-        return rawLines.stream()
-                .map(ItemLore::parseLine)
+        List<Component> converted = rawLines.stream()
+                .map(ItemLore::toComponentLine)
                 .toList();
+
+        return new ItemLore(converted);
     }
 
-    private static Component parseLine(String line) {
-        var component = MiniMessageText.of(line).toComponent();
-        return removeItalicDecoration(component);
+    private static Component toComponentLine(String line) {
+        MiniMessageText text = MiniMessageText.of(line);
+        Component component = text.toComponent();
+        return stripItalic(component);
     }
 
-    private static Component removeItalicDecoration(Component component) {
+    private static Component stripItalic(Component component) {
         return component.decoration(TextDecoration.ITALIC, false);
     }
 
@@ -66,6 +63,6 @@ public record ItemLore(@NotNull List<Component> lines) {
      * @return true if the lore has at least one line, false otherwise
      */
     public boolean hasContent() {
-        return !lines.isEmpty();
+        return !components.isEmpty();
     }
 }
