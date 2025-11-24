@@ -1,5 +1,6 @@
 package com.hanielcota.nexoapi.color;
 
+import com.hanielcota.nexoapi.text.MiniMessageText;
 import net.kyori.adventure.text.format.TextColor;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,11 +58,11 @@ public enum NexoColorRole {
 
         String openTag = openMiniMessageTag();
         String closeTag = closeMiniMessageTag();
-        String textValue = text.value();
+        String textValue = text.toMiniMessageString();
 
         String wrapped = openTag +
                 textValue +
                 closeTag;
-        return new MiniMessageText(wrapped);
+        return MiniMessageText.of(wrapped);
     }
 }

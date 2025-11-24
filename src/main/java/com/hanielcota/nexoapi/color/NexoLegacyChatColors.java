@@ -1,8 +1,8 @@
 package com.hanielcota.nexoapi.color;
 
+import com.hanielcota.nexoapi.text.MiniMessageText;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.jetbrains.annotations.NotNull;
@@ -11,7 +11,6 @@ import java.util.Objects;
 
 public final class NexoLegacyChatColors {
 
-    private static final MiniMessage MINI_MESSAGE = buildMiniMessage();
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = buildLegacySerializer();
     private static final PlainTextComponentSerializer PLAIN_TEXT_SERIALIZER = buildPlainTextSerializer();
 
@@ -35,9 +34,7 @@ public final class NexoLegacyChatColors {
         Objects.requireNonNull(legacyText, "Legacy text cannot be null.");
 
         Component component = componentFromLegacy(legacyText);
-        String serialized = MINI_MESSAGE.serialize(component);
-
-        return new MiniMessageText(serialized);
+        return new MiniMessageText(component);
     }
 
     public static MiniMessageText miniMessageWithRole(
@@ -81,10 +78,6 @@ public final class NexoLegacyChatColors {
         Component component = LEGACY_SERIALIZER.deserialize(textValue);
 
         return PLAIN_TEXT_SERIALIZER.serialize(component);
-    }
-
-    private static MiniMessage buildMiniMessage() {
-        return MiniMessage.miniMessage();
     }
 
     private static LegacyComponentSerializer buildLegacySerializer() {
