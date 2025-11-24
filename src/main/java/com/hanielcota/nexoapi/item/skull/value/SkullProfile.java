@@ -28,6 +28,7 @@ public sealed interface SkullProfile permits SkullProfile.Texture, SkullProfile.
             return CompletableFuture.completedFuture(texture.toPlayerProfile());
         }
     }
+
     record Owner(@NonNull SkullOwner owner) implements SkullProfile {
 
         @Override

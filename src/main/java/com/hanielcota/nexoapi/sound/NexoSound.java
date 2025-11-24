@@ -77,6 +77,20 @@ public record NexoSound(@NotNull Sound sound) {
         return Key.key(parts[0], parts[1]);
     }
 
+    private static NexoSound create(Key key,
+                                    SoundVolume volume,
+                                    SoundPitch pitch) {
+
+        Sound adventureSound = Sound.sound(
+                key,
+                Sound.Source.MASTER,
+                volume.volume(),
+                pitch.pitch()
+        );
+
+        return new NexoSound(adventureSound);
+    }
+
     /**
      * Creates a new NexoSound with the specified volume.
      *
@@ -163,20 +177,5 @@ public record NexoSound(@NotNull Sound sound) {
         }
 
         audience.stopSound(sound);
-    }
-
-
-    private static NexoSound create(Key key,
-                                    SoundVolume volume,
-                                    SoundPitch pitch) {
-
-        Sound adventureSound = Sound.sound(
-                key,
-                Sound.Source.MASTER,
-                volume.volume(),
-                pitch.pitch()
-        );
-
-        return new NexoSound(adventureSound);
     }
 }

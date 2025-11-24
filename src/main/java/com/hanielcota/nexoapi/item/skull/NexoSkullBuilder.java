@@ -117,6 +117,7 @@ public record NexoSkullBuilder(@Nullable SkullProfile profile) {
     private CompletableFuture<NexoItem> resolveAndBuild(@NotNull SkullProfile targetProfile) {
         return targetProfile.resolve().thenApply(this::makeItem);
     }
+
     private NexoItem makeItem(PlayerProfile resolved) {
         ItemStack stack = createPlayerHead();
         SkullMeta meta = getSkullMeta(stack);

@@ -33,7 +33,7 @@ public record ConfigFile(@NonNull File file) {
      * Creates the file and necessary directories if they don't exist.
      *
      * @param dataFolder the directory where the file will be created
-     * @param fileName the name of the configuration file
+     * @param fileName   the name of the configuration file
      * @return a prepared ConfigFile instance
      */
     public static ConfigFile prepare(@NonNull File dataFolder, @NonNull String fileName) {
@@ -47,7 +47,7 @@ public record ConfigFile(@NonNull File file) {
      * Prepares a configuration file using the plugin's data folder.
      * If the file exists as a resource in the plugin, it will be copied.
      *
-     * @param plugin the JavaPlugin instance
+     * @param plugin   the JavaPlugin instance
      * @param fileName the name of the configuration file
      * @return a prepared ConfigFile instance
      */

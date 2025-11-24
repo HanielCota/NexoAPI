@@ -24,7 +24,8 @@ public final class MojangSkinFetcher {
     private static final String PROPERTIES_KEY = "properties";
     private static final String VALUE_KEY = "value";
 
-    private MojangSkinFetcher() {}
+    private MojangSkinFetcher() {
+    }
 
     /**
      * Fetches the base64 texture string for a player UUID from Mojang's API.

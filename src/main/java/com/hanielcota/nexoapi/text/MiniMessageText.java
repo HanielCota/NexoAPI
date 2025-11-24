@@ -17,12 +17,11 @@ import org.jetbrains.annotations.Nullable;
  */
 public record MiniMessageText(@NotNull Component value) {
 
-    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
-
     /**
      * An empty MiniMessageText instance.
      */
     public static final MiniMessageText EMPTY = new MiniMessageText(Component.empty());
+    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
     /**
      * Creates a MiniMessageText from a text string.

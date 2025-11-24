@@ -14,15 +14,6 @@ public record TickDuration(long ticks) {
     private static final long MILLIS_PER_TICK = 50L;
 
     /**
-     * Converts this tick duration to a Java Duration.
-     *
-     * @return the Duration equivalent of this tick duration
-     */
-    public Duration toDuration() {
-        return Duration.ofMillis(ticks * MILLIS_PER_TICK);
-    }
-
-    /**
      * Creates a new TickDuration from a number of ticks.
      *
      * @param ticks the number of ticks (must be &gt;= 0)
@@ -35,5 +26,14 @@ public record TickDuration(long ticks) {
         }
 
         return new TickDuration(ticks);
+    }
+
+    /**
+     * Converts this tick duration to a Java Duration.
+     *
+     * @return the Duration equivalent of this tick duration
+     */
+    public Duration toDuration() {
+        return Duration.ofMillis(ticks * MILLIS_PER_TICK);
     }
 }

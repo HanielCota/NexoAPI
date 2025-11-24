@@ -10,22 +10,19 @@ package com.hanielcota.nexoapi.sound.params;
  */
 public record SoundVolume(float volume) {
 
-    private static final float MIN_VOLUME = 0.0f;
-
     /**
      * Silent volume (0.0).
      */
     public static final SoundVolume SILENT = SoundVolume.of(0.0f);
-
     /**
      * Normal volume (1.0).
      */
     public static final SoundVolume NORMAL = SoundVolume.of(1.0f);
-
     /**
      * Loud volume (2.0). Heard from further away.
      */
     public static final SoundVolume LOUD = SoundVolume.of(2.0f);
+    private static final float MIN_VOLUME = 0.0f;
 
     /**
      * Compact constructor that validates the volume.

@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  */
 public record AsyncFileWriter(@NonNull File target) {
 
-    private static final ExecutorService VIRTUAL_EXECUTOR = 
+    private static final ExecutorService VIRTUAL_EXECUTOR =
             Executors.newVirtualThreadPerTaskExecutor();
 
     static {

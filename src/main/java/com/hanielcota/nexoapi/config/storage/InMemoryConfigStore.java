@@ -91,12 +91,12 @@ public record InMemoryConfigStore(@NonNull YamlConfiguration configuration) {
             // Type validation for better error messages
             if (defaultValue != null && !defaultValue.getClass().isInstance(result)) {
                 throw new ClassCastException(
-                    String.format(
-                        "Type mismatch for path '%s': expected %s but got %s",
-                        path.value(),
-                        defaultValue.getClass().getName(),
-                        result.getClass().getName()
-                    )
+                        String.format(
+                                "Type mismatch for path '%s': expected %s but got %s",
+                                path.value(),
+                                defaultValue.getClass().getName(),
+                                result.getClass().getName()
+                        )
                 );
             }
 

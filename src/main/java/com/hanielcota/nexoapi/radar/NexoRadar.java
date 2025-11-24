@@ -143,10 +143,10 @@ public record NexoRadar(@NotNull Location center,
     }
 
     private void collectPlayers(Collection<Entity> entities,
-                                 Predicate<Player> filter,
-                                 Player ignoredPlayer,
-                                 double radiusSquared,
-                                 List<Player> players) {
+                                Predicate<Player> filter,
+                                Player ignoredPlayer,
+                                double radiusSquared,
+                                List<Player> players) {
         for (Entity entity : entities) {
             if (!(entity instanceof Player player)) {
                 continue;
@@ -159,9 +159,9 @@ public record NexoRadar(@NotNull Location center,
     }
 
     private boolean shouldAddPlayer(Player player,
-                                     Predicate<Player> filter,
-                                     Player ignoredPlayer,
-                                     double radiusSquared) {
+                                    Predicate<Player> filter,
+                                    Player ignoredPlayer,
+                                    double radiusSquared) {
         if (shouldIgnorePlayer(player, ignoredPlayer)) {
             return false;
         }
