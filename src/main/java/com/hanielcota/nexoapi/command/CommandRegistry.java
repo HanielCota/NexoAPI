@@ -100,6 +100,13 @@ public final class CommandRegistry {
         var commandName = metadata.name();
         String commandNameValue = commandName.value();
         commandsByLabel.put(commandNameValue, registeredCommand);
+
+        // Store aliases for lookup
+        var aliases = metadata.aliases();
+        for (String alias : aliases) {
+            String lowerCaseAlias = alias.toLowerCase();
+            commandsByLabel.put(lowerCaseAlias, registeredCommand);
+        }
     }
 
     private void registerOnPlatform(@NotNull RegisteredCommand registeredCommand) {

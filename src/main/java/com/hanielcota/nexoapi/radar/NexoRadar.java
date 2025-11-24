@@ -135,7 +135,8 @@ public record NexoRadar(@NotNull Location center,
 
         double radiusSquared = calculateRadiusSquared();
         Collection<Entity> nearbyEntities = getNearbyEntities(world);
-        List<Player> players = new ArrayList<>(Math.min(nearbyEntities.size(), 10));
+        // Use actual size to avoid unnecessary resizing
+        List<Player> players = new ArrayList<>(nearbyEntities.size());
 
         collectPlayers(nearbyEntities, filter, ignoredPlayer, radiusSquared, players);
 

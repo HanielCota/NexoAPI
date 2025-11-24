@@ -58,7 +58,8 @@ public record PaginatedItems<T>(@NotNull List<T> values,
         }
 
         int endExclusive = Math.min(startIndex + pageSizeValue, values.size());
-        return values.subList(startIndex, endExclusive);
+        // Return immutable copy to maintain record immutability contract
+        return List.copyOf(values.subList(startIndex, endExclusive));
     }
 
     /**
