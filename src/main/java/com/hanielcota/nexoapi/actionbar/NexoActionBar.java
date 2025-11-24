@@ -18,7 +18,7 @@ public record NexoActionBar(MiniMessageText content) {
 
     /**
      * Creates a new NexoActionBar from a text string.
-     * The text supports MiniMessage format (e.g., "<red>Hello" or "<#FF0000>Hello").
+     * The text supports MiniMessage format (e.g., {@code "<red>Hello"} or {@code "<#FF0000>Hello"}).
      *
      * @param text the action bar text, which may be null (will be treated as empty)
      * @return a new NexoActionBar instance

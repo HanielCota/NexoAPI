@@ -71,13 +71,13 @@ public record AsyncFileWriter(@NonNull File target) {
      * </p>
      * <p>
      * Recommended usage in plugin's onDisable:
+     * </p>
      * <pre>{@code
      * @Override
      * public void onDisable() {
      *     AsyncFileWriter.shutdown();
      * }
      * }</pre>
-     * </p>
      */
     public static void shutdown() {
         if (SHUTDOWN_INITIATED.compareAndSet(false, true)) {

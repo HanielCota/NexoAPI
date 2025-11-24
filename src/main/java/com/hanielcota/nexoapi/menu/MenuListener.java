@@ -17,10 +17,10 @@ import org.jetbrains.annotations.NotNull;
  * Handles click and close events for NexoMenu instances.
  * <p>
  * Register this listener in your plugin's onEnable:
+ * </p>
  * <pre>{@code
  * getServer().getPluginManager().registerEvents(new MenuListener(), this);
  * }</pre>
- * </p>
  *
  * @since 1.0.0
  */

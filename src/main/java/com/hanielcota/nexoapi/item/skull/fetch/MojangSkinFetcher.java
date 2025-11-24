@@ -40,6 +40,7 @@ public final class MojangSkinFetcher {
      * Fetches the base64 texture string for a player UUID from Mojang's API.
      * <p>
      * The CompletableFuture may complete exceptionally with:
+     * </p>
      * <ul>
      *   <li>{@link IllegalArgumentException} - if UUID is invalid</li>
      *   <li>{@link HttpTimeoutException} - if the request times out</li>
@@ -47,7 +48,6 @@ public final class MojangSkinFetcher {
      *   <li>{@link IllegalStateException} - if the API response is invalid or missing data</li>
      *   <li>{@link JsonSyntaxException} - if the response is not valid JSON</li>
      * </ul>
-     * </p>
      *
      * @param uuid the player UUID (with or without dashes)
      * @return a CompletableFuture that completes with the base64 texture string

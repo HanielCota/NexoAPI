@@ -18,13 +18,13 @@ import java.util.Objects;
  * Paginated menus display items across multiple pages with navigation controls.
  * <p>
  * Subclasses must implement:
+ * </p>
  * <ul>
  *   <li>{@link #createItem(Object)} - Creates an ItemStack for each item</li>
  *   <li>{@link #createNextPageItem()} - Creates the "next page" navigation item</li>
  *   <li>{@link #createPreviousPageItem()} - Creates the "previous page" navigation item</li>
  *   <li>{@link #handleItemClick(Object, MenuClickContext)} - Handles clicks on items</li>
  * </ul>
- * </p>
  *
  * @param <T> the type of items being paginated
  * @since 1.0.0
