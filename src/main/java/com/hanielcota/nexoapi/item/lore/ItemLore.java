@@ -1,4 +1,4 @@
-package com.hanielcota.nexoapi.item.property;
+package com.hanielcota.nexoapi.item.amount;
 
 import com.hanielcota.nexoapi.text.MiniMessageText;
 import net.kyori.adventure.text.Component;
@@ -8,7 +8,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Represents the lore (description lines) of an item.
@@ -42,12 +41,23 @@ public record ItemLore(@NotNull List<Component> lines) {
             return EMPTY;
         }
 
-        final var components = rawLines.stream()
-                .map(line -> MiniMessageText.of(line).toComponent())
-                .map(component -> component.decoration(TextDecoration.ITALIC, false))
-                .collect(Collectors.toList());
-
+        final var components = parseComponents(rawLines);
         return new ItemLore(components);
+    }
+
+    private static List<Component> parseComponents(List<String> rawLines) {
+        return rawLines.stream()
+                .map(ItemLore::parseLine)
+                .toList();
+    }
+
+    private static Component parseLine(String line) {
+        var component = MiniMessageText.of(line).toComponent();
+        return removeItalicDecoration(component);
+    }
+
+    private static Component removeItalicDecoration(Component component) {
+        return component.decoration(TextDecoration.ITALIC, false);
     }
 
     /**
