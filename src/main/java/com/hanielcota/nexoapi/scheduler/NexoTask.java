@@ -98,15 +98,17 @@ public record NexoTask(@NotNull TaskExecutionMode mode,
      *
      * @param plugin   the plugin instance
      * @param runnable the runnable to execute
+     * @return a ScheduledTask that can be used to cancel the task
      * @throws NullPointerException if plugin or runnable is null
      */
-    public void start(@NotNull Plugin plugin, @NotNull Runnable runnable) {
+    public @NotNull ScheduledTask start(@NotNull Plugin plugin, @NotNull Runnable runnable) {
+        BukkitTask task;
         if (timing.isOneTime()) {
-            mode.scheduleOnce(plugin, runnable, timing.initialDelay());
-            return;
+            task = mode.scheduleOnce(plugin, runnable, timing.initialDelay());
+        } else {
+            task = mode.scheduleRepeating(plugin, runnable, timing.initialDelay(), timing.interval());
         }
-
-        mode.scheduleRepeating(plugin, runnable, timing.initialDelay(), timing.interval());
+        return ScheduledTask.of(task);
     }
 
     /**
@@ -115,14 +117,16 @@ public record NexoTask(@NotNull TaskExecutionMode mode,
      *
      * @param plugin   the plugin instance
      * @param consumer the consumer that receives the BukkitTask
+     * @return a ScheduledTask that can be used to cancel the task
      * @throws IllegalStateException if the task is not a repeating task
      * @throws NullPointerException  if plugin or consumer is null
      */
-    public void start(@NotNull Plugin plugin, @NotNull Consumer<BukkitTask> consumer) {
+    public @NotNull ScheduledTask start(@NotNull Plugin plugin, @NotNull Consumer<BukkitTask> consumer) {
         if (timing.isOneTime()) {
             throw new IllegalStateException("Self-consuming tasks require a repeating interval.");
         }
 
-        mode.scheduleConsuming(plugin, consumer, timing.initialDelay(), timing.interval());
+        BukkitTask task = mode.scheduleConsuming(plugin, consumer, timing.initialDelay(), timing.interval());
+        return ScheduledTask.of(task);
     }
 }

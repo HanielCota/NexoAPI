@@ -7,57 +7,76 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public enum TaskExecutionMode {
 
     SYNC {
         @Override
-        public void scheduleOnce(@NotNull Plugin plugin,
-                                 @NotNull Runnable task,
-                                 @NotNull TickDuration delay) {
-            scheduler().runTaskLater(plugin, task, delay.ticks());
+        public @NotNull BukkitTask scheduleOnce(@NotNull Plugin plugin,
+                                                @NotNull Runnable task,
+                                                @NotNull TickDuration delay) {
+            return scheduler().runTaskLater(plugin, task, delay.ticks());
         }
 
         @Override
-        public void scheduleRepeating(@NotNull Plugin plugin,
-                                      @NotNull Runnable task,
-                                      @NotNull TickDuration delay,
-                                      @NotNull TickDuration interval) {
-            scheduler().runTaskTimer(plugin, task, delay.ticks(), interval.ticks());
+        public @NotNull BukkitTask scheduleRepeating(@NotNull Plugin plugin,
+                                                     @NotNull Runnable task,
+                                                     @NotNull TickDuration delay,
+                                                     @NotNull TickDuration interval) {
+            return scheduler().runTaskTimer(plugin, task, delay.ticks(), interval.ticks());
         }
 
         @Override
-        public void scheduleConsuming(@NotNull Plugin plugin,
-                                      @NotNull Consumer<BukkitTask> consumer,
-                                      @NotNull TickDuration delay,
-                                      @NotNull TickDuration interval) {
-            scheduler().runTaskTimer(plugin, consumer, delay.ticks(), interval.ticks());
+        public @NotNull BukkitTask scheduleConsuming(@NotNull Plugin plugin,
+                                                     @NotNull Consumer<BukkitTask> consumer,
+                                                     @NotNull TickDuration delay,
+                                                     @NotNull TickDuration interval) {
+            AtomicReference<BukkitTask> taskRef = new AtomicReference<>();
+            Runnable wrapper = () -> {
+                BukkitTask task = taskRef.get();
+                if (task != null) {
+                    consumer.accept(task);
+                }
+            };
+            BukkitTask task = scheduler().runTaskTimer(plugin, wrapper, delay.ticks(), interval.ticks());
+            taskRef.set(task);
+            return task;
         }
     },
 
     ASYNC {
         @Override
-        public void scheduleOnce(@NotNull Plugin plugin,
-                                 @NotNull Runnable task,
-                                 @NotNull TickDuration delay) {
-            scheduler().runTaskLaterAsynchronously(plugin, task, delay.ticks());
+        public @NotNull BukkitTask scheduleOnce(@NotNull Plugin plugin,
+                                                @NotNull Runnable task,
+                                                @NotNull TickDuration delay) {
+            return scheduler().runTaskLaterAsynchronously(plugin, task, delay.ticks());
         }
 
         @Override
-        public void scheduleRepeating(@NotNull Plugin plugin,
-                                      @NotNull Runnable task,
-                                      @NotNull TickDuration delay,
-                                      @NotNull TickDuration interval) {
-            scheduler().runTaskTimerAsynchronously(plugin, task, delay.ticks(), interval.ticks());
+        public @NotNull BukkitTask scheduleRepeating(@NotNull Plugin plugin,
+                                                     @NotNull Runnable task,
+                                                     @NotNull TickDuration delay,
+                                                     @NotNull TickDuration interval) {
+            return scheduler().runTaskTimerAsynchronously(plugin, task, delay.ticks(), interval.ticks());
         }
 
         @Override
-        public void scheduleConsuming(@NotNull Plugin plugin,
-                                      @NotNull Consumer<BukkitTask> consumer,
-                                      @NotNull TickDuration delay,
-                                      @NotNull TickDuration interval) {
-            scheduler().runTaskTimerAsynchronously(plugin, consumer, delay.ticks(), interval.ticks());
+        public @NotNull BukkitTask scheduleConsuming(@NotNull Plugin plugin,
+                                                     @NotNull Consumer<BukkitTask> consumer,
+                                                     @NotNull TickDuration delay,
+                                                     @NotNull TickDuration interval) {
+            AtomicReference<BukkitTask> taskRef = new AtomicReference<>();
+            Runnable wrapper = () -> {
+                BukkitTask task = taskRef.get();
+                if (task != null) {
+                    consumer.accept(task);
+                }
+            };
+            BukkitTask task = scheduler().runTaskTimerAsynchronously(plugin, wrapper, delay.ticks(), interval.ticks());
+            taskRef.set(task);
+            return task;
         }
     };
 
@@ -65,9 +84,9 @@ public enum TaskExecutionMode {
         return Bukkit.getScheduler();
     }
 
-    public abstract void scheduleOnce(Plugin plugin, Runnable task, TickDuration delay);
+    public abstract @NotNull BukkitTask scheduleOnce(@NotNull Plugin plugin, @NotNull Runnable task, @NotNull TickDuration delay);
 
-    public abstract void scheduleRepeating(Plugin plugin, Runnable task, TickDuration delay, TickDuration interval);
+    public abstract @NotNull BukkitTask scheduleRepeating(@NotNull Plugin plugin, @NotNull Runnable task, @NotNull TickDuration delay, @NotNull TickDuration interval);
 
-    public abstract void scheduleConsuming(Plugin plugin, Consumer<BukkitTask> consumer, TickDuration delay, TickDuration interval);
+    public abstract @NotNull BukkitTask scheduleConsuming(@NotNull Plugin plugin, @NotNull Consumer<BukkitTask> consumer, @NotNull TickDuration delay, @NotNull TickDuration interval);
 }
