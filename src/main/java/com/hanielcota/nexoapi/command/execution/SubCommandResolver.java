@@ -15,7 +15,6 @@ import java.util.Objects;
  */
 public final class SubCommandResolver {
     private SubCommandResolver() {
-        throw new UnsupportedOperationException("Utility class.");
     }
 
     /**

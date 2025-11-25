@@ -13,7 +13,6 @@ import java.util.Objects;
  */
 public final class PermissionChecker {
     private PermissionChecker() {
-        throw new UnsupportedOperationException("Utility class.");
     }
 
     /**

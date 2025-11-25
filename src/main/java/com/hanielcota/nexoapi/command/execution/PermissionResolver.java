@@ -14,7 +14,6 @@ import java.util.Objects;
  */
 public final class PermissionResolver {
     private PermissionResolver() {
-        throw new UnsupportedOperationException("Utility class.");
     }
 
     /**
