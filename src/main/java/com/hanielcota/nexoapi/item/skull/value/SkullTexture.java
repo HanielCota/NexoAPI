@@ -88,7 +88,7 @@ public record SkullTexture(@NonNull String base64) {
     }
 
     private UUID generateUuid() {
-        return UUID.nameUUIDFromBytes(base64.getBytes());
+        return UUID.nameUUIDFromBytes(base64.getBytes(StandardCharsets.UTF_8));
     }
 
     private PlayerProfile createProfile(UUID uuid) {

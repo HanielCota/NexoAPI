@@ -115,21 +115,24 @@ public record NexoItem(@NotNull ItemStack stack) {
         var lore = ItemLore.from(lines);
 
         return applyMeta(meta -> {
-            if (!lore.hasContent()) {
+            if (lore.hasContent()) {
+                meta.lore(lore.components());
                 return;
             }
-
-            meta.lore(lore.components());
+            
+            // Clear lore if null or empty was passed
+            meta.lore(null);
         });
     }
 
     /**
      * Builds and returns the final ItemStack.
+     * Returns a clone to prevent accidental modifications to the internal stack.
      *
-     * @return the configured ItemStack
+     * @return a clone of the configured ItemStack
      */
     public ItemStack build() {
-        return stack;
+        return stack.clone();
     }
 
     private NexoItem applyMeta(Consumer<ItemMeta> consumer) {

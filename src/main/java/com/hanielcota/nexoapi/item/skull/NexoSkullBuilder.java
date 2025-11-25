@@ -44,8 +44,12 @@ public record NexoSkullBuilder(
      *
      * @param base64 the base64 texture string
      * @return a new NexoSkullBuilder instance with the texture set
+     * @throws IllegalArgumentException if base64 is null or blank
      */
-    public NexoSkullBuilder withTexture(String base64) {
+    public NexoSkullBuilder withTexture(@NotNull String base64) {
+        if (base64 == null || base64.isBlank()) {
+            throw new IllegalArgumentException("Base64 texture cannot be null or blank.");
+        }
         return new NexoSkullBuilder(new SkullProfile.Texture(SkullTexture.of(base64)), name, lore);
     }
 
@@ -139,6 +143,18 @@ public record NexoSkullBuilder(
         };
     }
 
+    /**
+     * Builds the skull item synchronously and returns the ItemStack directly.
+     * Only works for texture-based skulls. Owner-based skulls require buildAsyncItem().
+     * This is a convenience method to avoid calling build() twice.
+     *
+     * @return the built ItemStack
+     * @throws IllegalStateException if the profile is owner-based
+     */
+    public ItemStack buildSyncItem() {
+        return buildSync().build();
+    }
+
     private NexoItem createEmptySkull() {
         return applyNameAndLore(NexoItem.from(Material.PLAYER_HEAD));
     }
@@ -164,6 +180,17 @@ public record NexoSkullBuilder(
         }
 
         return resolveAndBuild(profile);
+    }
+
+    /**
+     * Builds the skull item asynchronously and returns the ItemStack directly.
+     * Works for both texture and owner-based skulls.
+     * This is a convenience method to avoid calling build() twice.
+     *
+     * @return a CompletableFuture that completes with the built ItemStack
+     */
+    public CompletableFuture<ItemStack> buildAsyncItem() {
+        return buildAsync().thenApply(NexoItem::build);
     }
 
     private CompletableFuture<NexoItem> createEmptySkullFuture() {
