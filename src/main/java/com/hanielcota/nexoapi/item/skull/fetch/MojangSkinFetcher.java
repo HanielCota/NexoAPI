@@ -88,35 +88,35 @@ public final class MojangSkinFetcher {
                 .thenApply(MojangSkinFetcher::extractTexture)
                 .exceptionally(throwable -> {
                     Throwable cause = throwable.getCause() != null ? throwable.getCause() : throwable;
-                    
+
                     if (cause instanceof HttpTimeoutException) {
-                        throw new RuntimeException("Request to Mojang API timed out after " + 
+                        throw new RuntimeException("Request to Mojang API timed out after " +
                                 REQUEST_TIMEOUT.toSeconds() + " seconds", cause);
                     }
-                    
-                    if (cause instanceof java.net.ConnectException || 
+
+                    if (cause instanceof java.net.ConnectException ||
                         cause instanceof java.net.UnknownHostException) {
-                        throw new RuntimeException("Failed to connect to Mojang API: " + 
+                        throw new RuntimeException("Failed to connect to Mojang API: " +
                                 cause.getMessage(), cause);
                     }
-                    
+
                     if (cause instanceof java.io.IOException) {
-                        throw new RuntimeException("Network error while fetching skin from Mojang API: " + 
+                        throw new RuntimeException("Network error while fetching skin from Mojang API: " +
                                 cause.getMessage(), cause);
                     }
-                    
+
                     // Re-throw other exceptions as-is
                     if (cause instanceof RuntimeException) {
                         throw (RuntimeException) cause;
                     }
-                    
+
                     throw new RuntimeException("Unexpected error while fetching skin from Mojang API", cause);
                 });
     }
 
     private static HttpResponse<String> validateResponse(@NotNull HttpResponse<String> response) {
         int statusCode = response.statusCode();
-        
+
         if (statusCode < 200 || statusCode >= 300) {
             String errorMessage = switch (statusCode) {
                 case 404 -> "Player profile not found (UUID may be invalid)";
@@ -126,12 +126,12 @@ public final class MojangSkinFetcher {
             };
             throw new IllegalStateException(errorMessage);
         }
-        
+
         String body = response.body();
         if (body == null || body.isBlank()) {
             throw new IllegalStateException("Empty response body from Mojang API");
         }
-        
+
         return response;
     }
 
@@ -165,7 +165,7 @@ public final class MojangSkinFetcher {
         if (!root.has(PROPERTIES_KEY)) {
             throw new IllegalStateException("Missing 'properties' field in Mojang API response");
         }
-        
+
         try {
             return root.getAsJsonArray(PROPERTIES_KEY);
         } catch (IllegalStateException e) {

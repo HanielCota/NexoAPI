@@ -23,7 +23,7 @@ dependencies {
 
     compileOnly("org.projectlombok:lombok:1.18.34")
     annotationProcessor("org.projectlombok:lombok:1.18.34")
-    
+
     // Gson for JSON parsing in MojangSkinFetcher
     compileOnly("com.google.code.gson:gson:2.13.2")
 }
@@ -45,8 +45,6 @@ tasks.withType(Javadoc).configureEach {
     options.encoding = 'UTF-8'
     failOnError = false
 }
-
-
 
 publishing {
     publications {

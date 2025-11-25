@@ -18,7 +18,6 @@ public record LegacyText(String value) {
 
     public static LegacyText fromNullable(String rawValue) {
         return new LegacyText(Objects.requireNonNullElse(rawValue, ""));
-
     }
 
     public boolean isEmpty() {
