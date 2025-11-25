@@ -473,17 +473,18 @@ import java.util.concurrent.CompletableFuture;
 NexoItem emptySkull = NexoSkullBuilder.create()
     .buildSync();
 
-// Criar cabeça a partir de texture (base64)
+// Criar cabeça a partir de texture (base64) com nome
 NexoItem skullFromTexture = NexoSkullBuilder.create()
     .withTexture("eyJ0ZXh0dXJlcyI6...")
     .withName("<blue>Cabeça Customizada")
     .buildSync();
 
-// Criar cabeça a partir de SkullTexture
+// Criar cabeça a partir de SkullTexture com nome e lore
 SkullTexture texture = SkullTexture.of("eyJ0ZXh0dXJlcyI6...");
 NexoItem skullFromTextureObj = NexoSkullBuilder.create()
     .withTexture(texture)
     .withName("<gold>Cabeça com Texture")
+    .withLore(List.of("<gray>Uma cabeça especial", "<yellow>Com lore customizada"))
     .buildSync();
 
 // Criar cabeça a partir de URL de textura do Minecraft (URL completa)
@@ -496,6 +497,7 @@ NexoItem skullFromUrl = NexoSkullBuilder.create()
 NexoItem skullFromHash = NexoSkullBuilder.create()
     .withTextureUrl("45cd2ea036fce9970776d64a6f0e99b4b213e0676033fa346be17cd31e201962")
     .withName("<yellow>Cabeça do Hash")
+    .withLore(List.of("<gray>Hash da textura"))
     .buildSync();
 
 // Ou usando SkullTexture.fromUrl() com URL completa
@@ -518,6 +520,7 @@ SkullOwner owner = SkullOwner.of(playerUUID, "Notch");
 CompletableFuture<NexoItem> skullFuture = NexoSkullBuilder.create()
     .withOwner(owner)
     .withName("<red>Cabeça do Jogador")
+    .withLore(List.of("<gray>Cabeça do jogador", "<yellow>" + player.getName()))
     .buildAsync();
 
 skullFuture.thenAccept(skull -> {

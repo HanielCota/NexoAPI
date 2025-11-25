@@ -12,6 +12,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -19,9 +20,15 @@ import java.util.concurrent.CompletableFuture;
  * Supports both synchronous and asynchronous building.
  *
  * @param profile the skull profile (may be null for empty skull)
+ * @param name the display name (supports MiniMessage), may be null
+ * @param lore the lore lines (supports MiniMessage), may be null
  * @since 1.0.0
  */
-public record NexoSkullBuilder(@Nullable SkullProfile profile) {
+public record NexoSkullBuilder(
+        @Nullable SkullProfile profile,
+        @Nullable String name,
+        @Nullable List<String> lore
+) {
 
     /**
      * Creates a new empty NexoSkullBuilder.
@@ -29,7 +36,7 @@ public record NexoSkullBuilder(@Nullable SkullProfile profile) {
      * @return a new NexoSkullBuilder instance
      */
     public static NexoSkullBuilder create() {
-        return new NexoSkullBuilder(null);
+        return new NexoSkullBuilder(null, null, null);
     }
 
     /**
@@ -39,7 +46,7 @@ public record NexoSkullBuilder(@Nullable SkullProfile profile) {
      * @return a new NexoSkullBuilder instance with the texture set
      */
     public NexoSkullBuilder withTexture(String base64) {
-        return new NexoSkullBuilder(new SkullProfile.Texture(SkullTexture.of(base64)));
+        return new NexoSkullBuilder(new SkullProfile.Texture(SkullTexture.of(base64)), name, lore);
     }
 
     /**
@@ -49,7 +56,7 @@ public record NexoSkullBuilder(@Nullable SkullProfile profile) {
      * @return a new NexoSkullBuilder instance with the texture set
      */
     public NexoSkullBuilder withTexture(SkullTexture texture) {
-        return new NexoSkullBuilder(new SkullProfile.Texture(texture));
+        return new NexoSkullBuilder(new SkullProfile.Texture(texture), name, lore);
     }
 
     /**
@@ -63,7 +70,7 @@ public record NexoSkullBuilder(@Nullable SkullProfile profile) {
      * @throws IllegalArgumentException if textureUrlOrHash is blank or invalid
      */
     public NexoSkullBuilder withTextureUrl(@NotNull String textureUrlOrHash) {
-        return new NexoSkullBuilder(new SkullProfile.Texture(SkullTexture.fromUrl(textureUrlOrHash)));
+        return new NexoSkullBuilder(new SkullProfile.Texture(SkullTexture.fromUrl(textureUrlOrHash)), name, lore);
     }
 
     /**
@@ -73,7 +80,29 @@ public record NexoSkullBuilder(@Nullable SkullProfile profile) {
      * @return a new NexoSkullBuilder instance with the owner set
      */
     public NexoSkullBuilder withOwner(SkullOwner owner) {
-        return new NexoSkullBuilder(new SkullProfile.Owner(owner));
+        return new NexoSkullBuilder(new SkullProfile.Owner(owner), name, lore);
+    }
+
+    /**
+     * Sets the display name of the skull item.
+     * The name supports MiniMessage format and will have italic decoration removed.
+     *
+     * @param name the display name, which may be null (will clear the name)
+     * @return a new NexoSkullBuilder instance with the name set
+     */
+    public NexoSkullBuilder withName(@Nullable String name) {
+        return new NexoSkullBuilder(profile, name, lore);
+    }
+
+    /**
+     * Sets the lore of the skull item.
+     * Each line supports MiniMessage format and will have italic decoration removed.
+     *
+     * @param lines the lore lines, which may be null or empty (will clear the lore)
+     * @return a new NexoSkullBuilder instance with the lore set
+     */
+    public NexoSkullBuilder withLore(@Nullable List<String> lines) {
+        return new NexoSkullBuilder(profile, name, lines);
     }
 
     /**
@@ -97,7 +126,7 @@ public record NexoSkullBuilder(@Nullable SkullProfile profile) {
     }
 
     private NexoItem createEmptySkull() {
-        return NexoItem.from(Material.PLAYER_HEAD);
+        return applyNameAndLore(NexoItem.from(Material.PLAYER_HEAD));
     }
 
     private NexoItem buildFromTexture(SkullTexture texture) {
@@ -124,7 +153,7 @@ public record NexoSkullBuilder(@Nullable SkullProfile profile) {
     }
 
     private CompletableFuture<NexoItem> createEmptySkullFuture() {
-        NexoItem item = NexoItem.from(Material.PLAYER_HEAD);
+        NexoItem item = applyNameAndLore(NexoItem.from(Material.PLAYER_HEAD));
         return CompletableFuture.completedFuture(item);
     }
 
@@ -137,13 +166,27 @@ public record NexoSkullBuilder(@Nullable SkullProfile profile) {
         SkullMeta meta = getSkullMeta(stack);
 
         if (meta == null) {
-            return NexoItem.edit(stack);
+            return applyNameAndLore(NexoItem.edit(stack));
         }
 
         applyProfile(meta, resolved);
         stack.setItemMeta(meta);
 
-        return NexoItem.edit(stack);
+        return applyNameAndLore(NexoItem.edit(stack));
+    }
+
+    private NexoItem applyNameAndLore(NexoItem item) {
+        NexoItem result = item;
+        
+        if (name != null) {
+            result = result.withName(name);
+        }
+        
+        if (lore != null) {
+            result = result.withLore(lore);
+        }
+        
+        return result;
     }
 
     private ItemStack createPlayerHead() {
