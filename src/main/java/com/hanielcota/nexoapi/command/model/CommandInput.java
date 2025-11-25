@@ -2,7 +2,6 @@ package com.hanielcota.nexoapi.command.model;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -40,7 +39,8 @@ public record CommandInput(
         if (rawArguments == null || rawArguments.length == 0) {
             return CommandArguments.empty();
         }
-        List<String> argumentsList = Arrays.asList(rawArguments);
+        // Create an immutable copy to prevent external modifications
+        List<String> argumentsList = List.of(rawArguments);
         return new CommandArguments(argumentsList);
     }
 }

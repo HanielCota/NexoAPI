@@ -77,19 +77,30 @@ public final class CommandRegistry {
         var commandName = metadata.name();
         String commandNameValue = commandName.value();
 
+        // Check if command name conflicts with existing command or alias
         if (commandsByLabel.containsKey(commandNameValue)) {
             String message = "Command already registered: " + commandNameValue;
             throw new IllegalStateException(message);
         }
 
+        // Check if any alias conflicts with existing command or alias
         var aliases = metadata.aliases();
         for (String alias : aliases) {
-            String lowerCaseAlias = alias.toLowerCase();
+            String lowerCaseAlias = alias.toLowerCase().trim();
+            if (lowerCaseAlias.isEmpty()) {
+                continue; // Skip empty aliases
+            }
             if (commandsByLabel.containsKey(lowerCaseAlias)) {
-                String message = "Alias already registered: " + alias;
+                String message = "Alias '" + alias + "' conflicts with an already registered command or alias";
                 throw new IllegalStateException(message);
             }
         }
+
+        // Check if command name conflicts with any existing alias
+        // (This is already covered by the first check since CommandName is lowercase)
+        // But we also need to check if any existing command has this as an alias
+        // This is more complex and would require reverse lookup, so we'll rely on
+        // the fact that aliases are stored in lowercase in the map
     }
 
     private void storeCommandByLabel(
@@ -98,13 +109,18 @@ public final class CommandRegistry {
     ) {
         var metadata = commandDefinition.metadata();
         var commandName = metadata.name();
+        // CommandName is already lowercase, so we can use it directly
         String commandNameValue = commandName.value();
         commandsByLabel.put(commandNameValue, registeredCommand);
 
-        // Store aliases for lookup
+        // Store aliases for lookup (all in lowercase for consistency)
         var aliases = metadata.aliases();
         for (String alias : aliases) {
-            String lowerCaseAlias = alias.toLowerCase();
+            String trimmedAlias = alias.trim();
+            if (trimmedAlias.isEmpty()) {
+                continue; // Skip empty aliases
+            }
+            String lowerCaseAlias = trimmedAlias.toLowerCase();
             commandsByLabel.put(lowerCaseAlias, registeredCommand);
         }
     }

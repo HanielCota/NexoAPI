@@ -84,10 +84,19 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
         var commandArguments = commandInput.arguments();
 
         int argumentCount = commandArguments.size();
+        
+        // If we have 0 or 1 argument, try to suggest subcommands first
         if (argumentCount == 0 || argumentCount == 1) {
-            return suggestSubCommandNames(sender, commandDefinition, commandArguments);
+            var subCommandMap = commandDefinition.subCommands();
+            // Only suggest subcommands if they exist
+            if (!subCommandMap.isEmpty()) {
+                return suggestSubCommandNames(sender, commandDefinition, commandArguments);
+            }
+            // If no subcommands, try custom suggestions for the first argument
+            return getCustomSuggestions(commandContext);
         }
 
+        // For 2+ arguments, get custom suggestions
         return getCustomSuggestions(commandContext);
     }
 
@@ -200,7 +209,13 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
     private void handleCommandException(@NotNull CommandSender sender, @NotNull Exception exception) {
         String message = "§cErro ao executar comando: §7" + exception.getMessage();
         sender.sendMessage(message);
-        exception.printStackTrace();
+        
+        // Log the exception to console
+        ownerPlugin.getLogger().severe("Erro ao executar comando '" + 
+                registeredCommand.definition().metadata().name().value() + 
+                "' enviado por " + sender.getName() + ":");
+        ownerPlugin.getLogger().log(java.util.logging.Level.SEVERE, 
+                exception.getMessage(), exception);
     }
 
     private CommandPermission resolveSubCommandPermission(
