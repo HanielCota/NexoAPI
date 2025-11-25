@@ -53,7 +53,7 @@ public final class MojangSkinFetcher {
      * @return a CompletableFuture that completes with the base64 texture string
      */
     public static CompletableFuture<String> fetchBase64(@NotNull String uuid) {
-        if (uuid == null || uuid.isBlank()) {
+        if (uuid.isBlank()) {
             return CompletableFuture.failedFuture(
                     new IllegalArgumentException("UUID cannot be null or blank")
             );

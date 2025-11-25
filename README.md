@@ -39,6 +39,7 @@
   - [Radar](#-radar)
   - [Queue](#-queue)
   - [Formatação de Texto](#-formatação-de-texto)
+  - [Sistema de Cores](#-sistema-de-cores)
   - [Sistema de Cooldown](#-sistema-de-cooldown)
   - [Sistema de Menus](#-sistema-de-menus)
 - [Formato MiniMessage](#-formato-minimessage)
@@ -79,9 +80,11 @@
 
 ### 📝 Texto e Formatação
 - ✅ **Suporte MiniMessage** para formatação rica de texto
+- ✅ **Detecção automática** de códigos legacy (§) com conversão automática
 - ✅ **Componentes pré-parseados** para performance otimizada
 - ✅ **Tratamento de texto vazio** seguro
 - ✅ **Integração Adventure API** completa
+- ✅ **Sistema de cores** com ColorHex, LegacyText e NexoColorRole
 
 ### 🎮 Comunicação com Jogadores
 - ✅ **Titles** com timing customizável
@@ -94,7 +97,9 @@
 - ✅ **Suporte MiniMessage** para nomes e lore
 - ✅ **Remoção automática** de decoração itálica
 - ✅ **Validação type-safe** de quantidade
-- ✅ **Skull Builder** para criar cabeças de jogadores
+- ✅ **Skull Builder** com suporte síncrono e assíncrono
+- ✅ **Cache de perfis** para otimização de performance
+- ✅ **Suporte a texture e owner** para criação de cabeças
 
 ### ⚡ Sistema de Comandos
 - ✅ **Registro dinâmico** de comandos sem plugin.yml
@@ -458,22 +463,49 @@ ItemStack complexItem = NexoItem.from(Material.ENCHANTED_BOOK)
 
 ```java
 import com.hanielcota.nexoapi.item.skull.NexoSkullBuilder;
+import com.hanielcota.nexoapi.item.skull.value.SkullOwner;
+import com.hanielcota.nexoapi.item.skull.value.SkullTexture;
 import org.bukkit.inventory.ItemStack;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
-// Criar cabeça a partir de nome de jogador
-ItemStack skull = NexoSkullBuilder.fromPlayer("Notch")
-    .withName("<gold>Cabeça do Notch")
-    .build();
+// Criar cabeça vazia
+NexoItem emptySkull = NexoSkullBuilder.create()
+    .buildSync();
 
-// Criar cabeça a partir de UUID
-ItemStack skull2 = NexoSkullBuilder.fromUUID(playerUUID)
-    .withName("<red>Cabeça do Jogador")
-    .build();
-
-// Criar cabeça a partir de texture value
-ItemStack skull3 = NexoSkullBuilder.fromTexture("eyJ0ZXh0dXJlcyI6...")
+// Criar cabeça a partir de texture (base64)
+NexoItem skullFromTexture = NexoSkullBuilder.create()
+    .withTexture("eyJ0ZXh0dXJlcyI6...")
     .withName("<blue>Cabeça Customizada")
-    .build();
+    .buildSync();
+
+// Criar cabeça a partir de SkullTexture
+SkullTexture texture = SkullTexture.of("eyJ0ZXh0dXJlcyI6...");
+NexoItem skullFromTextureObj = NexoSkullBuilder.create()
+    .withTexture(texture)
+    .withName("<gold>Cabeça com Texture")
+    .buildSync();
+
+// Criar cabeça a partir de owner (UUID) - requer buildAsync()
+UUID playerUUID = player.getUniqueId();
+SkullOwner owner = SkullOwner.of(playerUUID, "Notch");
+CompletableFuture<NexoItem> skullFuture = NexoSkullBuilder.create()
+    .withOwner(owner)
+    .withName("<red>Cabeça do Jogador")
+    .buildAsync();
+
+skullFuture.thenAccept(skull -> {
+    // Usar o item quando estiver pronto
+    player.getInventory().addItem(skull.build());
+});
+
+// Criar cabeça a partir de owner apenas com UUID
+SkullOwner ownerUUIDOnly = SkullOwner.of(playerUUID);
+NexoItem skullAsync = NexoSkullBuilder.create()
+    .withOwner(ownerUUIDOnly)
+    .withName("<green>Cabeça do Jogador")
+    .buildAsync()
+    .join(); // Aguardar sincronamente (não recomendado em produção)
 ```
 
 ### 🎵 Sons
@@ -676,13 +708,125 @@ import net.kyori.adventure.text.Component;
 MiniMessageText text = MiniMessageText.of("<red>Olá <bold>Mundo!");
 Component component = text.toComponent();
 
+// Detecção automática de códigos legacy (§)
+// O MiniMessageText detecta automaticamente códigos legacy e os converte
+MiniMessageText legacyText = MiniMessageText.of("§cTexto vermelho §lnegrito");
+// Será automaticamente convertido para MiniMessage
+
 // Tratamento de texto vazio
 MiniMessageText empty = MiniMessageText.of(null); // Retorna instância EMPTY
 Component emptyComponent = empty.toComponent(); // Component.empty()
 
+// Serializar de volta para MiniMessage string
+String miniMessageString = text.toMiniMessageString();
+
 // Usar em mensagens
 player.sendMessage(MiniMessageText.of("<green>Bem-vindo!").toComponent());
 ```
+
+### 🎨 Sistema de Cores
+
+O NexoAPI oferece um sistema completo de gerenciamento de cores com suporte a cores hexadecimais, texto legacy e roles de cores pré-definidas.
+
+#### ColorHex
+
+```java
+import com.hanielcota.nexoapi.color.ColorHex;
+
+// Criar cor hexadecimal
+ColorHex color = ColorHex.from("#FF0000"); // Vermelho
+ColorHex color2 = ColorHex.from("00FF00"); // Verde (hash é adicionado automaticamente)
+
+// Obter valor com ou sem hash
+String withHash = color.value(); // "#FF0000"
+String withoutHash = color.withoutHash(); // "FF0000"
+```
+
+#### LegacyText
+
+```java
+import com.hanielcota.nexoapi.color.LegacyText;
+
+// Criar texto legacy
+LegacyText legacy = LegacyText.from("&cTexto vermelho &lnegrito");
+LegacyText legacyNullable = LegacyText.fromNullable(null); // Retorna texto vazio
+
+// Verificar se está vazio
+boolean isEmpty = legacy.isEmpty();
+```
+
+#### NexoColorRole
+
+```java
+import com.hanielcota.nexoapi.color.NexoColorRole;
+import com.hanielcota.nexoapi.color.ColorHex;
+import com.hanielcota.nexoapi.text.MiniMessageText;
+import net.kyori.adventure.text.format.TextColor;
+
+// Usar roles pré-definidas
+ColorHex primaryColor = NexoColorRole.PRIMARY.hex();
+ColorHex successColor = NexoColorRole.SUCCESS.hex();
+ColorHex errorColor = NexoColorRole.ERROR.hex();
+
+// Converter para TextColor
+TextColor textColor = NexoColorRole.PRIMARY.asTextColor();
+
+// Obter tags MiniMessage
+String openTag = NexoColorRole.PRIMARY.openMiniMessageTag(); // "<#00A3FF>"
+String closeTag = NexoColorRole.PRIMARY.closeMiniMessageTag(); // "</#00A3FF>"
+
+// Envolver texto com role
+MiniMessageText text = MiniMessageText.of("Texto importante");
+MiniMessageText wrapped = NexoColorRole.SUCCESS.wrap(text);
+```
+
+#### NexoLegacyChatColors
+
+```java
+import com.hanielcota.nexoapi.color.NexoLegacyChatColors;
+import com.hanielcota.nexoapi.color.LegacyText;
+import com.hanielcota.nexoapi.color.NexoColorRole;
+import net.kyori.adventure.text.Component;
+
+// Converter legacy para Component
+LegacyText legacy = LegacyText.from("&cTexto vermelho");
+Component component = NexoLegacyChatColors.componentFromLegacy(legacy);
+
+// Converter legacy para MiniMessageText
+MiniMessageText miniMessage = NexoLegacyChatColors.miniMessageFromLegacy(legacy);
+
+// Adicionar role a texto legacy
+MiniMessageText withRole = NexoLegacyChatColors.miniMessageWithRole(
+    NexoColorRole.ERROR,
+    legacy
+);
+
+// Criar componente com prefixo colorido
+Component withPrefix = NexoLegacyChatColors.componentWithRolePrefix(
+    NexoColorRole.PRIMARY,
+    LegacyText.from("[Sistema]"),
+    LegacyText.from("Mensagem importante")
+);
+
+// Remover códigos legacy e obter texto plano
+String plainText = NexoLegacyChatColors.stripLegacyToPlain(legacy);
+```
+
+#### Roles Disponíveis
+
+O NexoAPI inclui as seguintes roles de cores pré-definidas:
+
+- `PRIMARY` - #00A3FF (Azul primário)
+- `SECONDARY` - #6366F1 (Roxo secundário)
+- `SUCCESS` - #16A34A (Verde de sucesso)
+- `WARNING` - #FACC15 (Amarelo de aviso)
+- `ERROR` - #DC2626 (Vermelho de erro)
+- `INFO` - #38BDF8 (Azul claro de informação)
+- `MUTED` - #9CA3AF (Cinza suave)
+- `BACKGROUND` - #020617 (Preto de fundo)
+- `HIGHLIGHT` - #F97316 (Laranja de destaque)
+- `TITLE` - #E5E7EB (Branco para títulos)
+- `SUBTITLE` - #9CA3AF (Cinza para subtítulos)
 
 ### ⏱️ Sistema de Cooldown
 
@@ -1224,14 +1368,17 @@ NexoAPI/
 │   │   │       │   ├── model/          # Modelos de comando
 │   │   │       │   └── sub/            # Subcomandos
 │   │   │       ├── config/              # Gerenciamento de config
-│   │   │       ├── file/                # Operações de arquivo
-│   │   │       ├── path/                # Path handling
-│   │   │       ├── persistence/         # Persistência
-│   │   │       └── storage/             # Armazenamento
+│   │   │       │   ├── file/            # Operações de arquivo
+│   │   │       │   ├── path/            # Path handling
+│   │   │       │   ├── persistence/     # Persistência
+│   │   │       │   └── storage/          # Armazenamento
 │   │   │       ├── item/                # Item builder
-│   │   │       ├── amount/              # Validação de quantidade
-│   │   │       ├── lore/                # Lore handling
-│   │   │       └── skull/               # Skull builder
+│   │   │       │   ├── amount/          # Validação de quantidade
+│   │   │       │   ├── lore/            # Lore handling
+│   │   │       │   └── skull/           # Skull builder
+│   │   │       │       ├── cache/       # Cache de perfis
+│   │   │       │       ├── fetch/        # Fetch de skins (Mojang API)
+│   │   │       │       └── value/       # Value objects (SkullOwner, etc)
 │   │   │       ├── queue/               # Sistema de filas
 │   │   │       ├── radar/               # Sistema de radar
 │   │   │       ├── scheduler/           # Sistema de tarefas
@@ -1243,9 +1390,11 @@ NexoAPI/
 │   │   │       │   └── property/        # Propriedades de cooldown
 │   │   │       ├── menu/                # Sistema de menus
 │   │   │       │   ├── pagination/      # Menus paginados
-│   │   │       │   ├── staticmenu/      # Menus estáticos
+│   │   │       │   ├── staticmenu/     # Menus estáticos
+│   │   │       │   ├── property/       # Propriedades de menu
 │   │   │       │   └── util/            # Utilitários de menu
 │   │   │       └── color/               # Sistema de cores
+│   │   │           # ColorHex, LegacyText, NexoColorRole, NexoLegacyChatColors
 │   │   └── resources/
 │   └── test/
 ├── build.gradle
