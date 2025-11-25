@@ -5,6 +5,8 @@ import com.destroystokyo.paper.profile.ProfileProperty;
 import lombok.NonNull;
 import org.bukkit.Bukkit;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.UUID;
 
 /**
@@ -31,6 +33,46 @@ public record SkullTexture(@NonNull String base64) {
      */
     public static SkullTexture of(@NonNull String base64) {
         return new SkullTexture(base64);
+    }
+
+    /**
+     * Creates a new SkullTexture from a Minecraft texture URL or hash.
+     * Accepts either:
+     * - Full URL: http://textures.minecraft.net/texture/&lt;hash&gt;
+     * - Just the hash: &lt;hash&gt;
+     *
+     * @param textureUrlOrHash the Minecraft texture URL or hash
+     * @return a new SkullTexture instance
+     * @throws IllegalArgumentException if textureUrlOrHash is blank or invalid
+     */
+    public static SkullTexture fromUrl(@NonNull String textureUrlOrHash) {
+        if (textureUrlOrHash.isBlank()) {
+            throw new IllegalArgumentException("Texture URL or hash cannot be blank.");
+        }
+
+        String fullUrl = normalizeUrl(textureUrlOrHash);
+        String json = createTextureJson(fullUrl);
+        String base64 = encodeToBase64(json);
+        return new SkullTexture(base64);
+    }
+
+    private static String normalizeUrl(String input) {
+        // Se já é uma URL completa, retorna como está
+        if (input.startsWith("http://") || input.startsWith("https://")) {
+            return input;
+        }
+        
+        // Se é apenas o hash, constrói a URL completa
+        return "http://textures.minecraft.net/texture/" + input;
+    }
+
+    private static String createTextureJson(String url) {
+        return String.format("{\"textures\":{\"SKIN\":{\"url\":\"%s\"}}}", url);
+    }
+
+    private static String encodeToBase64(String json) {
+        byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+        return Base64.getEncoder().encodeToString(bytes);
     }
 
     /**

@@ -53,6 +53,20 @@ public record NexoSkullBuilder(@Nullable SkullProfile profile) {
     }
 
     /**
+     * Sets the texture using a Minecraft texture URL or hash.
+     * Accepts either:
+     * - Full URL: http://textures.minecraft.net/texture/&lt;hash&gt;
+     * - Just the hash: &lt;hash&gt;
+     *
+     * @param textureUrlOrHash the Minecraft texture URL or hash
+     * @return a new NexoSkullBuilder instance with the texture set
+     * @throws IllegalArgumentException if textureUrlOrHash is blank or invalid
+     */
+    public NexoSkullBuilder withTextureUrl(@NotNull String textureUrlOrHash) {
+        return new NexoSkullBuilder(new SkullProfile.Texture(SkullTexture.fromUrl(textureUrlOrHash)));
+    }
+
+    /**
      * Sets the owner using a SkullOwner.
      *
      * @param owner the skull owner

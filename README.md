@@ -486,6 +486,32 @@ NexoItem skullFromTextureObj = NexoSkullBuilder.create()
     .withName("<gold>Cabeça com Texture")
     .buildSync();
 
+// Criar cabeça a partir de URL de textura do Minecraft (URL completa)
+NexoItem skullFromUrl = NexoSkullBuilder.create()
+    .withTextureUrl("http://textures.minecraft.net/texture/45cd2ea036fce9970776d64a6f0e99b4b213e0676033fa346be17cd31e201962")
+    .withName("<green>Cabeça da URL")
+    .buildSync();
+
+// Criar cabeça a partir de apenas o hash da textura (mais simples!)
+NexoItem skullFromHash = NexoSkullBuilder.create()
+    .withTextureUrl("45cd2ea036fce9970776d64a6f0e99b4b213e0676033fa346be17cd31e201962")
+    .withName("<yellow>Cabeça do Hash")
+    .buildSync();
+
+// Ou usando SkullTexture.fromUrl() com URL completa
+SkullTexture textureFromUrl = SkullTexture.fromUrl("http://textures.minecraft.net/texture/45cd2ea036fce9970776d64a6f0e99b4b213e0676033fa346be17cd31e201962");
+NexoItem skullFromUrlObj = NexoSkullBuilder.create()
+    .withTexture(textureFromUrl)
+    .withName("<blue>Cabeça da URL (objeto)")
+    .buildSync();
+
+// Ou usando SkullTexture.fromUrl() com apenas o hash
+SkullTexture textureFromHash = SkullTexture.fromUrl("45cd2ea036fce9970776d64a6f0e99b4b213e0676033fa346be17cd31e201962");
+NexoItem skullFromHashObj = NexoSkullBuilder.create()
+    .withTexture(textureFromHash)
+    .withName("<cyan>Cabeça do Hash (objeto)")
+    .buildSync();
+
 // Criar cabeça a partir de owner (UUID) - requer buildAsync()
 UUID playerUUID = player.getUniqueId();
 SkullOwner owner = SkullOwner.of(playerUUID, "Notch");
