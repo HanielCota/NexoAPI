@@ -3,7 +3,6 @@ package com.hanielcota.nexoapi.command.model;
 import com.hanielcota.nexoapi.command.annotation.NexoCommand;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -41,12 +40,12 @@ public final class CommandMetadataFactory {
         );
     }
 
-    private static List<String> extractAliases(@NotNull NexoCommand annotation) {
+    private static CommandAliases extractAliases(@NotNull NexoCommand annotation) {
         String[] rawAliases = annotation.aliases();
         if (rawAliases == null || rawAliases.length == 0) {
-            return List.of();
+            return CommandAliases.empty();
         }
-        return List.of(rawAliases);
+        return CommandAliases.from(rawAliases);
     }
 
     private static CommandExecutionType resolveExecutionType(@NotNull NexoCommand annotation) {

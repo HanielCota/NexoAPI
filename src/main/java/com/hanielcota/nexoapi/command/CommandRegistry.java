@@ -2,6 +2,8 @@ package com.hanielcota.nexoapi.command;
 
 import com.hanielcota.nexoapi.command.annotation.NexoCommand;
 import com.hanielcota.nexoapi.command.model.*;
+import com.hanielcota.nexoapi.command.registry.CommandLabelMap;
+import com.hanielcota.nexoapi.command.registry.CommandLabelSet;
 import org.bukkit.Server;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginCommand;
@@ -10,9 +12,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Registry for dynamic command registration.
@@ -22,11 +22,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class CommandRegistry {
     private final Plugin ownerPlugin;
-    private final Map<String, RegisteredCommand> commandsByLabel;
+    private final CommandLabelMap commandsByLabel;
 
-    private CommandRegistry(@NotNull Plugin ownerPlugin, @NotNull Map<String, RegisteredCommand> commandsByLabel) {
-        this.ownerPlugin = ownerPlugin;
-        this.commandsByLabel = commandsByLabel;
+    private CommandRegistry(@NotNull Plugin ownerPlugin, @NotNull CommandLabelMap commandsByLabel) {
+        this.ownerPlugin = Objects.requireNonNull(ownerPlugin, "Plugin cannot be null.");
+        this.commandsByLabel = Objects.requireNonNull(commandsByLabel, "Command label map cannot be null.");
     }
 
     /**
@@ -37,8 +37,7 @@ public final class CommandRegistry {
      */
     public static CommandRegistry create(@NotNull Plugin ownerPlugin) {
         Objects.requireNonNull(ownerPlugin, "Plugin cannot be null.");
-        Map<String, RegisteredCommand> internalMap = new ConcurrentHashMap<>();
-        return new CommandRegistry(ownerPlugin, internalMap);
+        return new CommandRegistry(ownerPlugin, CommandLabelMap.empty());
     }
 
     /**
@@ -65,64 +64,35 @@ public final class CommandRegistry {
 
         try {
             registerOnPlatform(registeredCommand);
-            storeCommandByLabel(commandDefinition, registeredCommand);
+            storeCommandLabels(commandDefinition, registeredCommand);
         } catch (Exception exception) {
-            String message = "Failed to register command: " + commandDefinition.metadata().name().value();
+            var metadata = commandDefinition.metadata();
+            var commandName = metadata.name();
+            String message = "Failed to register command: " + commandName.value();
             throw new IllegalStateException(message, exception);
         }
     }
 
     private void validateCommandNotRegistered(@NotNull CommandDefinition commandDefinition) {
         var metadata = commandDefinition.metadata();
-        var commandName = metadata.name();
-        String commandNameValue = commandName.value();
+        var labels = CommandLabelSet.from(metadata.name(), metadata.aliases());
 
-        // Check if command name conflicts with existing command or alias
-        if (commandsByLabel.containsKey(commandNameValue)) {
-            String message = "Command already registered: " + commandNameValue;
-            throw new IllegalStateException(message);
+        if (!commandsByLabel.hasConflict(labels)) {
+            return;
         }
 
-        // Check if any alias conflicts with existing command or alias
-        var aliases = metadata.aliases();
-        for (String alias : aliases) {
-            String lowerCaseAlias = alias.toLowerCase().trim();
-            if (lowerCaseAlias.isEmpty()) {
-                continue; // Skip empty aliases
-            }
-            if (commandsByLabel.containsKey(lowerCaseAlias)) {
-                String message = "Alias '" + alias + "' conflicts with an already registered command or alias";
-                throw new IllegalStateException(message);
-            }
-        }
-
-        // Check if command name conflicts with any existing alias
-        // (This is already covered by the first check since CommandName is lowercase)
-        // But we also need to check if any existing command has this as an alias
-        // This is more complex and would require reverse lookup, so we'll rely on
-        // the fact that aliases are stored in lowercase in the map
+        var conflictingLabel = labels.commandName();
+        String message = "Command or alias already registered: " + conflictingLabel.value();
+        throw new IllegalStateException(message);
     }
 
-    private void storeCommandByLabel(
+    private void storeCommandLabels(
             @NotNull CommandDefinition commandDefinition,
             @NotNull RegisteredCommand registeredCommand
     ) {
         var metadata = commandDefinition.metadata();
-        var commandName = metadata.name();
-        // CommandName is already lowercase, so we can use it directly
-        String commandNameValue = commandName.value();
-        commandsByLabel.put(commandNameValue, registeredCommand);
-
-        // Store aliases for lookup (all in lowercase for consistency)
-        var aliases = metadata.aliases();
-        for (String alias : aliases) {
-            String trimmedAlias = alias.trim();
-            if (trimmedAlias.isEmpty()) {
-                continue; // Skip empty aliases
-            }
-            String lowerCaseAlias = trimmedAlias.toLowerCase();
-            commandsByLabel.put(lowerCaseAlias, registeredCommand);
-        }
+        var labels = CommandLabelSet.from(metadata.name(), metadata.aliases());
+        commandsByLabel.storeAll(labels, registeredCommand);
     }
 
     private void registerOnPlatform(@NotNull RegisteredCommand registeredCommand) {
@@ -178,20 +148,32 @@ public final class CommandRegistry {
             @NotNull PluginCommand pluginCommand,
             @NotNull CommandMetadata metadata
     ) {
-        var description = metadata.description();
+        configureDescription(pluginCommand, metadata.description());
+        configurePermission(pluginCommand, metadata.permission());
+        configureAliases(pluginCommand, metadata.aliases());
+    }
+
+    private void configureDescription(@NotNull PluginCommand pluginCommand, @NotNull CommandDescription description) {
         String descriptionValue = description.value();
-        if (!descriptionValue.isEmpty()) {
-            pluginCommand.setDescription(descriptionValue);
+        if (descriptionValue.isEmpty()) {
+            return;
         }
+        pluginCommand.setDescription(descriptionValue);
+    }
 
-        CommandPermission permission = metadata.permission();
-        if (permission.isRequired()) {
-            String permissionValue = permission.value();
-            pluginCommand.setPermission(permissionValue);
+    private void configurePermission(@NotNull PluginCommand pluginCommand, @NotNull CommandPermission permission) {
+        if (!permission.isRequired()) {
+            return;
         }
+        String permissionValue = permission.value();
+        pluginCommand.setPermission(permissionValue);
+    }
 
-        var aliases = metadata.aliases();
-        pluginCommand.setAliases(aliases);
+    private void configureAliases(@NotNull PluginCommand pluginCommand, @NotNull CommandAliases aliases) {
+        if (aliases.isEmpty()) {
+            return;
+        }
+        pluginCommand.setAliases(aliases.all());
     }
 
     private CommandMap findCommandMap() {

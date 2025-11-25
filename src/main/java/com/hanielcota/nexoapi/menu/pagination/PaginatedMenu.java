@@ -4,7 +4,6 @@ import com.hanielcota.nexoapi.menu.MenuClickContext;
 import com.hanielcota.nexoapi.menu.MenuView;
 import com.hanielcota.nexoapi.menu.NexoMenu;
 import com.hanielcota.nexoapi.menu.property.MenuSize;
-import com.hanielcota.nexoapi.menu.property.MenuSlot;
 import com.hanielcota.nexoapi.menu.property.MenuTitle;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -31,11 +30,8 @@ import java.util.Objects;
  */
 public abstract class PaginatedMenu<T> extends NexoMenu {
 
-    private final PaginatedItems<T> paginatedItems;
-    // Performance: Cache navigation items to avoid recreation
-    private final ItemStack cachedNextPageItem;
-    private final ItemStack cachedPreviousPageItem;
-    private PageIndex currentPage;
+    private PageState<T> pageState;
+    private final NavigationItems navigationItems;
 
     /**
      * Creates a new PaginatedMenu with the specified title, size, and items.
@@ -52,18 +48,19 @@ public abstract class PaginatedMenu<T> extends NexoMenu {
         super(title, size);
 
         Objects.requireNonNull(paginatedItems, "paginatedItems cannot be null");
-        this.paginatedItems = paginatedItems;
-        this.currentPage = PageIndex.first();
+        validateMinimumSize(size);
 
-        int rows = size.rows();
+        this.pageState = PageState.initial(paginatedItems);
+        this.navigationItems = NavigationItems.create(
+                this::createNextPageItem,
+                this::createPreviousPageItem
+        );
+    }
 
-        if (rows < 2) {
+    private void validateMinimumSize(@NotNull MenuSize size) {
+        if (size.rows() < 2) {
             throw new IllegalArgumentException("Paginated menus require at least 2 rows.");
         }
-
-        // Performance: Pre-create navigation items once
-        this.cachedNextPageItem = createNextPageItem();
-        this.cachedPreviousPageItem = createPreviousPageItem();
     }
 
     @Override
@@ -111,75 +108,77 @@ public abstract class PaginatedMenu<T> extends NexoMenu {
     private void fillItems(@NotNull MenuView view) {
         Objects.requireNonNull(view, "view cannot be null");
 
-        Inventory inventory = view.inventory();
+        var inventory = view.inventory();
+        var maxItemSlots = calculateMaxItemSlots();
+        var pageItems = pageState.pageItems();
+        var limit = Math.min(pageItems.size(), maxItemSlots);
 
-        MenuSize menuSize = size;
-        int rows = menuSize.rows();
-        int maxItemSlots = (rows - 1) * 9;
+        fillItemSlots(inventory, pageItems, limit);
+        clearRemainingSlots(inventory, limit, maxItemSlots);
+    }
 
-        List<T> pageValues = paginatedItems.pageItems(currentPage);
-        int limit = Math.min(pageValues.size(), maxItemSlots);
+    private int calculateMaxItemSlots() {
+        int rows = size.rows();
+        return (rows - 1) * 9;
+    }
 
-        // Performance: Direct array access and batch operations
+    private void fillItemSlots(@NotNull Inventory inventory, @NotNull List<T> items, int limit) {
         for (int index = 0; index < limit; index++) {
-            T value = pageValues.get(index);
+            T value = items.get(index);
             ItemStack itemStack = createItem(value);
             inventory.setItem(index, itemStack);
         }
+    }
 
-        // Performance: Clear remaining slots in one pass if needed
-        if (limit < maxItemSlots) {
-            for (int index = limit; index < maxItemSlots; index++) {
-                inventory.setItem(index, null);
-            }
+    private void clearRemainingSlots(@NotNull Inventory inventory, int from, int to) {
+        if (from >= to) {
+            return;
+        }
+
+        for (int index = from; index < to; index++) {
+            inventory.setItem(index, null);
         }
     }
 
     private void fillNavigation(@NotNull MenuView view) {
         Objects.requireNonNull(view, "view cannot be null");
 
-        Inventory inventory = view.inventory();
+        var inventory = view.inventory();
+        var positions = calculateNavigationPositions();
 
-        MenuSize menuSize = size;
-        int rows = menuSize.rows();
-        int totalSlots = rows * 9;
-        int lastRowStartIndex = totalSlots - 9;
-
-        boolean hasPrevious = paginatedItems.hasPrevious(currentPage);
-
-        if (hasPrevious) {
-            // Performance: Use cached item instead of recreating
-            inventory.setItem(lastRowStartIndex, cachedPreviousPageItem);
+        if (pageState.hasPrevious()) {
+            inventory.setItem(positions.previous(), navigationItems.previousPage());
         }
 
-        boolean hasNext = paginatedItems.hasNext(currentPage);
-
-        if (hasNext) {
-            int lastSlotIndex = totalSlots - 1;
-            // Performance: Use cached item instead of recreating
-            inventory.setItem(lastSlotIndex, cachedNextPageItem);
+        if (pageState.hasNext()) {
+            inventory.setItem(positions.next(), navigationItems.nextPage());
         }
     }
+
+    @NotNull
+    private NavigationPositions calculateNavigationPositions() {
+        int rows = size.rows();
+        int totalSlots = rows * 9;
+        int lastRowStartIndex = totalSlots - 9;
+        int lastSlotIndex = totalSlots - 1;
+        return new NavigationPositions(lastRowStartIndex, lastSlotIndex);
+    }
+
+    private record NavigationPositions(int previous, int next) {}
 
     @Override
     public void handleClick(@NotNull MenuClickContext context) {
         Objects.requireNonNull(context, "context cannot be null");
 
-        MenuSlot slot = context.slot();
-        int slotIndex = slot.index();
+        var slotIndex = context.slot().index();
+        var positions = calculateNavigationPositions();
 
-        MenuSize menuSize = size;
-        int rows = menuSize.rows();
-        int totalSlots = rows * 9;
-        int lastRowStartIndex = totalSlots - 9;
-        int lastSlotIndex = totalSlots - 1;
-
-        if (slotIndex == lastRowStartIndex) {
+        if (slotIndex == positions.previous()) {
             handlePreviousClick(context);
             return;
         }
 
-        if (slotIndex == lastSlotIndex) {
+        if (slotIndex == positions.next()) {
             handleNextClick(context);
             return;
         }
@@ -190,58 +189,47 @@ public abstract class PaginatedMenu<T> extends NexoMenu {
     private void handlePreviousClick(@NotNull MenuClickContext context) {
         Objects.requireNonNull(context, "context cannot be null");
 
-        boolean hasPrevious = paginatedItems.hasPrevious(currentPage);
-
-        if (!hasPrevious) {
+        if (!pageState.hasPrevious()) {
             return;
         }
 
-        currentPage = currentPage.previous();
-
-        // Performance: Reuse existing inventory instead of creating new MenuView
-        Inventory inventory = context.inventory();
-        MenuView view = new MenuView(context.player(), inventory);
-        populate(view);
+        pageState = pageState.previousPage();
+        refreshMenu(context);
     }
 
     private void handleNextClick(@NotNull MenuClickContext context) {
         Objects.requireNonNull(context, "context cannot be null");
 
-        boolean hasNext = paginatedItems.hasNext(currentPage);
-
-        if (!hasNext) {
+        if (!pageState.hasNext()) {
             return;
         }
 
-        currentPage = currentPage.next();
+        pageState = pageState.nextPage();
+        refreshMenu(context);
+    }
 
-        // Performance: Reuse existing inventory instead of creating new MenuView
-        Inventory inventory = context.inventory();
-        MenuView view = new MenuView(context.player(), inventory);
+    private void refreshMenu(@NotNull MenuClickContext context) {
+        var inventory = context.inventory();
+        var view = new MenuView(context.player(), inventory);
         populate(view);
     }
 
     private void handleItemAreaClick(@NotNull MenuClickContext context) {
         Objects.requireNonNull(context, "context cannot be null");
 
-        MenuSize menuSize = size;
-        int rows = menuSize.rows();
-        int maxItemSlots = (rows - 1) * 9;
-
-        MenuSlot slot = context.slot();
-        int slotIndex = slot.index();
+        var slotIndex = context.slot().index();
+        var maxItemSlots = calculateMaxItemSlots();
 
         if (slotIndex >= maxItemSlots) {
             return;
         }
 
-        List<T> pageValues = paginatedItems.pageItems(currentPage);
-
-        if (slotIndex >= pageValues.size()) {
+        var pageItems = pageState.pageItems();
+        if (slotIndex >= pageItems.size()) {
             return;
         }
 
-        T value = pageValues.get(slotIndex);
+        T value = pageItems.get(slotIndex);
         handleItemClick(value, context);
     }
 }
