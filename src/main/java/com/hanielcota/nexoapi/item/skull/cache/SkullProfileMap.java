@@ -28,12 +28,29 @@ public record SkullProfileMap(@NotNull Map<String, PlayerProfile> cache) {
     /**
      * Gets or creates a player profile for the given texture.
      *
-     * @param texture the skull texture
+     * @param texture      the skull texture
+     * @param debugEnabled whether to log debug messages for cache hits
      * @return the cached or newly created player profile
      */
-    public PlayerProfile getOrCreate(@NotNull SkullTexture texture) {
+    public PlayerProfile getOrCreate(@NotNull SkullTexture texture, boolean debugEnabled) {
         String key = texture.base64();
-        return cache.computeIfAbsent(key, k -> createProfile(texture));
+        
+        // Check if the key already exists in cache (cache hit)
+        // We check before computeIfAbsent to detect cache hits
+        boolean isCacheHit = cache.containsKey(key);
+        
+        PlayerProfile profile = cache.computeIfAbsent(key, k -> {
+            // This lambda is only called if the key doesn't exist (cache miss)
+            return createProfile(texture);
+        });
+        
+        // Log debug message if cache was hit and debug is enabled
+        if (debugEnabled && isCacheHit) {
+            String keyPreview = key.length() > 20 ? key.substring(0, 20) + "..." : key;
+            System.out.println("[SkullProfileCache] Cache hit para texture: " + keyPreview);
+        }
+        
+        return profile;
     }
 
     private PlayerProfile createProfile(SkullTexture texture) {

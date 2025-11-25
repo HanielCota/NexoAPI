@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 public class SkullProfileCache {
 
     private final SkullProfileMap CACHE = SkullProfileMap.empty();
+    private volatile boolean debugEnabled = false;
 
     /**
      * Gets or creates a player profile for the given texture.
@@ -23,7 +24,7 @@ public class SkullProfileCache {
      * @return the cached or newly created player profile
      */
     public PlayerProfile getOrCreate(@NotNull SkullTexture texture) {
-        return CACHE.getOrCreate(texture);
+        return CACHE.getOrCreate(texture, debugEnabled);
     }
 
     /**
@@ -31,5 +32,29 @@ public class SkullProfileCache {
      */
     public void clear() {
         CACHE.clear();
+    }
+
+    /**
+     * Enables debug logging for cache hits.
+     * When enabled, logs a message whenever a cached profile is retrieved.
+     */
+    public void enableDebug() {
+        debugEnabled = true;
+    }
+
+    /**
+     * Disables debug logging for cache hits.
+     */
+    public void disableDebug() {
+        debugEnabled = false;
+    }
+
+    /**
+     * Checks if debug logging is currently enabled.
+     *
+     * @return true if debug is enabled, false otherwise
+     */
+    public boolean isDebugEnabled() {
+        return debugEnabled;
     }
 }
