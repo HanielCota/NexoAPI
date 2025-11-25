@@ -225,7 +225,7 @@ public class MyPlugin extends JavaPlugin {
         // Criar item
         ItemStack item = NexoItem.from(Material.DIAMOND)
             .withName("<red>Item Especial")
-            .withLore(List.of("<gray>Lore do item"))
+            .withLore("<gray>Lore do item")
             .build();
     }
 }
@@ -431,31 +431,37 @@ import java.util.List;
 ItemStack item = NexoItem.from(Material.DIAMOND_SWORD)
     .withAmount(1)
     .withName("<red>Espada Lendária")
-    .withLore(Arrays.asList(
+    .withLore(
         "<gray>Esta é uma arma poderosa",
         "<yellow>Dano: <red>+100",
         "",
         "<gray>Clique direito para ativar"
-    ))
+    )
     .build();
 
 // Editar item existente
 ItemStack edited = NexoItem.edit(existingItem)
     .withName("<gold>Item Renomeado")
-    .withLore(newLore)
+    .withLore(newLore) // Também aceita List<String>
     .build();
 
-// Item com múltiplas linhas de lore
+// Item com múltiplas linhas de lore (usando varargs - mais simples!)
 ItemStack complexItem = NexoItem.from(Material.ENCHANTED_BOOK)
     .withName("<gradient:gold:yellow>Livro Mágico")
-    .withLore(List.of(
+    .withLore(
         "<gray>Descrição do item",
         "<yellow>Efeitos:",
         "<green>• Força +10",
         "<green>• Velocidade +5",
         "",
         "<red>Durabilidade: <yellow>100%"
-    ))
+    )
+    .build();
+
+// Também funciona com List.of() se preferir
+ItemStack itemWithList = NexoItem.from(Material.DIAMOND)
+    .withName("<blue>Item")
+    .withLore(List.of("<gray>Linha 1", "<gray>Linha 2"))
     .build();
 ```
 
@@ -479,12 +485,12 @@ NexoItem skullFromTexture = NexoSkullBuilder.create()
     .withName("<blue>Cabeça Customizada")
     .buildSync();
 
-// Criar cabeça a partir de SkullTexture com nome e lore
+// Criar cabeça a partir de SkullTexture com nome e lore (usando varargs - mais simples!)
 SkullTexture texture = SkullTexture.of("eyJ0ZXh0dXJlcyI6...");
 NexoItem skullFromTextureObj = NexoSkullBuilder.create()
     .withTexture(texture)
     .withName("<gold>Cabeça com Texture")
-    .withLore(List.of("<gray>Uma cabeça especial", "<yellow>Com lore customizada"))
+    .withLore("<gray>Uma cabeça especial", "<yellow>Com lore customizada")
     .buildSync();
 
 // Criar cabeça a partir de URL de textura do Minecraft (URL completa)
@@ -497,7 +503,7 @@ NexoItem skullFromUrl = NexoSkullBuilder.create()
 NexoItem skullFromHash = NexoSkullBuilder.create()
     .withTextureUrl("45cd2ea036fce9970776d64a6f0e99b4b213e0676033fa346be17cd31e201962")
     .withName("<yellow>Cabeça do Hash")
-    .withLore(List.of("<gray>Hash da textura"))
+    .withLore("<gray>Hash da textura")
     .buildSync();
 
 // Ou usando SkullTexture.fromUrl() com URL completa
@@ -520,7 +526,7 @@ SkullOwner owner = SkullOwner.of(playerUUID, "Notch");
 CompletableFuture<NexoItem> skullFuture = NexoSkullBuilder.create()
     .withOwner(owner)
     .withName("<red>Cabeça do Jogador")
-    .withLore(List.of("<gray>Cabeça do jogador", "<yellow>" + player.getName()))
+    .withLore("<gray>Cabeça do jogador", "<yellow>" + player.getName())
     .buildAsync();
 
 skullFuture.thenAccept(skull -> {
@@ -975,7 +981,7 @@ public class ShopMenu extends StaticMenu {
         // Item na posição 10 (segunda linha, segundo slot)
         ItemStack sword = NexoItem.from(Material.DIAMOND_SWORD)
             .withName("<red>Espada de Diamante")
-            .withLore(List.of("<gray>Custo: <green>100 moedas"))
+            .withLore("<gray>Custo: <green>100 moedas")
             .build();
         
         builder.addItem(MenuSlot.ofIndex(10), MenuItemDefinition.builder()
@@ -1032,9 +1038,7 @@ public class ItemsMenu extends PaginatedMenu<Material> {
     protected ItemStack createItem(Material material) {
         return NexoItem.from(material)
             .withName("<yellow>" + material.name())
-            .withLore(List.of(
-                "<gray>Clique para obter este item"
-            ))
+            .withLore("<gray>Clique para obter este item")
             .build();
     }
     

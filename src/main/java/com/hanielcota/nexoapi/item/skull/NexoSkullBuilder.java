@@ -95,6 +95,20 @@ public record NexoSkullBuilder(
     }
 
     /**
+     * Sets the lore of the skull item using varargs.
+     * Each line supports MiniMessage format and will have italic decoration removed.
+     *
+     * @param lines the lore lines (varargs)
+     * @return a new NexoSkullBuilder instance with the lore set
+     */
+    public NexoSkullBuilder withLore(@NotNull String... lines) {
+        if (lines == null || lines.length == 0) {
+            return new NexoSkullBuilder(profile, name, null);
+        }
+        return new NexoSkullBuilder(profile, name, List.of(lines));
+    }
+
+    /**
      * Sets the lore of the skull item.
      * Each line supports MiniMessage format and will have italic decoration removed.
      *

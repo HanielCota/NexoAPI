@@ -91,6 +91,20 @@ public record NexoItem(@NotNull ItemStack stack) {
     }
 
     /**
+     * Sets the lore of the item using varargs.
+     * Each line supports MiniMessage format and will have italic decoration removed.
+     *
+     * @param lines the lore lines (varargs)
+     * @return this NexoItem instance for method chaining
+     */
+    public NexoItem withLore(@NotNull String... lines) {
+        if (lines == null || lines.length == 0) {
+            return withLore((List<String>) null);
+        }
+        return withLore(List.of(lines));
+    }
+
+    /**
      * Sets the lore of the item.
      * Each line supports MiniMessage format and will have italic decoration removed.
      *
