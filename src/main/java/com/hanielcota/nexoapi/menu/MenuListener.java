@@ -80,7 +80,7 @@ public final class MenuListener implements Listener {
 
         HumanEntity closer = event.getPlayer();
 
-        if (!(closer instanceof Player player)) {
+        if (closer == null || !(closer instanceof Player player)) {
             return;
         }
 

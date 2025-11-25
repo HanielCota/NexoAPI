@@ -130,7 +130,8 @@ public final class NexoConfig {
      * @return a CompletableFuture that completes when the file is saved and dirty flag is reset
      */
     public CompletableFuture<Void> save() {
-        if (!persistence.isDirty()) {
+        ConfigPersistence currentPersistence = persistence;
+        if (!currentPersistence.isDirty()) {
             return CompletableFuture.completedFuture(null);
         }
 

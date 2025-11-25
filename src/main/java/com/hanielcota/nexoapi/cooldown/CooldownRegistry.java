@@ -67,13 +67,17 @@ public record CooldownRegistry(
 
     /**
      * Clears all cooldowns for a specific owner (player UUID).
+     * <p>
+     * This operation is thread-safe and uses entry iteration for safe removal.
+     * </p>
      *
      * @param ownerId the owner UUID
      * @throws NullPointerException if ownerId is null
      */
     public void clearForOwner(@NotNull UUID ownerId) {
         Objects.requireNonNull(ownerId, "Owner id cannot be null.");
-        cooldowns.keySet().removeIf(key -> ownerId.equals(key.ownerId()));
+        // Use entrySet iteration for thread-safe removal from ConcurrentHashMap
+        cooldowns.entrySet().removeIf(entry -> ownerId.equals(entry.getKey().ownerId()));
     }
 
     /**

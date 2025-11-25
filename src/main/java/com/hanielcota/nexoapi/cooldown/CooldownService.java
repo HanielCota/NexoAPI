@@ -112,7 +112,8 @@ public record CooldownService(@NotNull CooldownRegistry registry, @NotNull Clock
         var key = CooldownKey.forPlayer(player, cooldownId);
         var existing = registry.find(key);
 
-        boolean canConsume = existing.isEmpty() || existing.get().isExpired(now);
+        // Use orElse to safely check expiration without risking NoSuchElementException
+        boolean canConsume = existing.map(cooldown -> cooldown.isExpired(now)).orElse(true);
 
         if (canConsume) {
             if (existing.isPresent()) {
