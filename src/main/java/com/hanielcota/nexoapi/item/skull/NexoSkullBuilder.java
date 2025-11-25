@@ -7,13 +7,16 @@ import com.hanielcota.nexoapi.item.skull.value.SkullOwner;
 import com.hanielcota.nexoapi.item.skull.value.SkullProfile;
 import com.hanielcota.nexoapi.item.skull.value.SkullTexture;
 import org.bukkit.Material;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 /**
  * Builder for creating skull items with various sources (texture, owner).
@@ -194,6 +197,49 @@ public record NexoSkullBuilder(
      */
     public CompletableFuture<ItemStack> buildAsyncItem() {
         return buildAsync().thenApply(NexoItem::build);
+    }
+
+    /**
+     * Builds the skull item asynchronously and executes the consumer on the main thread when ready.
+     * Works for both texture and owner-based skulls.
+     * This method ensures the consumer runs on the main thread, preventing blocking.
+     *
+     * @param plugin the plugin instance (used for scheduling)
+     * @param consumer the consumer to execute with the built NexoItem (runs on main thread)
+     * @throws NullPointerException if plugin or consumer is null
+     */
+    public void buildAsync(@NotNull Plugin plugin, @NotNull Consumer<NexoItem> consumer) {
+        Objects.requireNonNull(plugin, "Plugin cannot be null.");
+        Objects.requireNonNull(consumer, "Consumer cannot be null.");
+
+        buildAsync().thenAccept(item -> {
+            if (!plugin.isEnabled()) {
+                return;
+            }
+            plugin.getServer().getScheduler().runTask(plugin, () -> consumer.accept(item));
+        });
+    }
+
+    /**
+     * Builds the skull item asynchronously and executes the consumer on the main thread when ready.
+     * Works for both texture and owner-based skulls.
+     * This method ensures the consumer runs on the main thread, preventing blocking.
+     * This is a convenience method that provides the ItemStack directly.
+     *
+     * @param plugin the plugin instance (used for scheduling)
+     * @param consumer the consumer to execute with the built ItemStack (runs on main thread)
+     * @throws NullPointerException if plugin or consumer is null
+     */
+    public void buildAsyncItem(@NotNull Plugin plugin, @NotNull Consumer<ItemStack> consumer) {
+        Objects.requireNonNull(plugin, "Plugin cannot be null.");
+        Objects.requireNonNull(consumer, "Consumer cannot be null.");
+
+        buildAsyncItem().thenAccept(item -> {
+            if (!plugin.isEnabled()) {
+                return;
+            }
+            plugin.getServer().getScheduler().runTask(plugin, () -> consumer.accept(item));
+        });
     }
 
     private CompletableFuture<NexoItem> createEmptySkullFuture() {
