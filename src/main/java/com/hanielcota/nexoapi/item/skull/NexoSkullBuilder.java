@@ -41,14 +41,14 @@ public record NexoSkullBuilder(
 
     /**
      * Sets the texture using a base64 string.
+     * If the base64 string is null or blank, the texture will not be set and this builder will be returned unchanged.
      *
-     * @param base64 the base64 texture string
-     * @return a new NexoSkullBuilder instance with the texture set
-     * @throws IllegalArgumentException if base64 is null or blank
+     * @param base64 the base64 texture string (may be null or blank)
+     * @return a new NexoSkullBuilder instance with the texture set, or unchanged if base64 is null or blank
      */
-    public NexoSkullBuilder withTexture(@NotNull String base64) {
+    public NexoSkullBuilder withTexture(@Nullable String base64) {
         if (base64 == null || base64.isBlank()) {
-            throw new IllegalArgumentException("Base64 texture cannot be null or blank.");
+            return this;
         }
         return new NexoSkullBuilder(new SkullProfile.Texture(SkullTexture.of(base64)), name, lore);
     }
@@ -68,12 +68,15 @@ public record NexoSkullBuilder(
      * Accepts either:
      * - Full URL: http://textures.minecraft.net/texture/&lt;hash&gt;
      * - Just the hash: &lt;hash&gt;
+     * If the textureUrlOrHash is null or blank, the texture will not be set and this builder will be returned unchanged.
      *
-     * @param textureUrlOrHash the Minecraft texture URL or hash
-     * @return a new NexoSkullBuilder instance with the texture set
-     * @throws IllegalArgumentException if textureUrlOrHash is blank or invalid
+     * @param textureUrlOrHash the Minecraft texture URL or hash (may be null or blank)
+     * @return a new NexoSkullBuilder instance with the texture set, or unchanged if textureUrlOrHash is null or blank
      */
-    public NexoSkullBuilder withTextureUrl(@NotNull String textureUrlOrHash) {
+    public NexoSkullBuilder withTextureUrl(@Nullable String textureUrlOrHash) {
+        if (textureUrlOrHash == null || textureUrlOrHash.isBlank()) {
+            return this;
+        }
         return new NexoSkullBuilder(new SkullProfile.Texture(SkullTexture.fromUrl(textureUrlOrHash)), name, lore);
     }
 
