@@ -1,7 +1,6 @@
 package com.hanielcota.nexoapi.config.file;
 
 import lombok.NonNull;
-import lombok.SneakyThrows;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -79,14 +78,17 @@ public record ConfigFile(@NonNull File file) {
         create(plugin, name, file);
     }
 
-    @SneakyThrows
     private static void create(File file) {
         if (file.exists()) {
             return;
         }
 
-        createParentDirectories(file);
-        createFile(file);
+        try {
+            createParentDirectories(file);
+            createFile(file);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create config file: " + file.getAbsolutePath(), e);
+        }
     }
 
     private static void createParentDirectories(File file) throws IOException {
@@ -104,8 +106,7 @@ public record ConfigFile(@NonNull File file) {
         }
     }
 
-    @SneakyThrows
-    private static void createFile(File file) {
+    private static void createFile(File file) throws IOException {
         if (!file.createNewFile()) {
             throw new IOException("""
                     Critical failure: Could not create file %s
@@ -114,20 +115,23 @@ public record ConfigFile(@NonNull File file) {
         }
     }
 
-    @SneakyThrows
     private static void create(JavaPlugin plugin, String name, File file) {
         if (file.exists()) {
             return;
         }
 
-        createParentDirectories(file);
+        try {
+            createParentDirectories(file);
 
-        if (shouldCopyFromResources(plugin, name)) {
-            plugin.saveResource(name, false);
-            return;
+            if (shouldCopyFromResources(plugin, name)) {
+                plugin.saveResource(name, false);
+                return;
+            }
+
+            createFile(file);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create config file: " + file.getAbsolutePath(), e);
         }
-
-        createFile(file);
     }
 
     private static boolean shouldCopyFromResources(JavaPlugin plugin, String name) {

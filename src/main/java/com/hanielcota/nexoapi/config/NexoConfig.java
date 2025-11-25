@@ -12,6 +12,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Asynchronous configuration API for Minecraft plugins.
@@ -28,7 +29,7 @@ public final class NexoConfig {
     private static final Map<String, ConfigPath> PATH_CACHE = new ConcurrentHashMap<>();
 
     private final InMemoryConfigStore store;
-    private volatile ConfigPersistence persistence;
+    private final AtomicReference<ConfigPersistence> persistenceRef;
 
     /**
      * Creates a new NexoConfig instance from a file.
@@ -41,7 +42,7 @@ public final class NexoConfig {
 
         this.store = new InMemoryConfigStore();
         var writer = new AsyncFileWriter(disk.file());
-        this.persistence = ConfigPersistence.with(writer);
+        this.persistenceRef = new AtomicReference<>(ConfigPersistence.with(writer));
 
         store.load(disk.file());
     }
@@ -58,7 +59,7 @@ public final class NexoConfig {
 
         this.store = new InMemoryConfigStore();
         var writer = new AsyncFileWriter(disk.file());
-        this.persistence = ConfigPersistence.with(writer);
+        this.persistenceRef = new AtomicReference<>(ConfigPersistence.with(writer));
 
         store.load(disk.file());
     }
@@ -76,7 +77,7 @@ public final class NexoConfig {
 
         this.store = new InMemoryConfigStore();
         var writer = new AsyncFileWriter(disk.file());
-        this.persistence = ConfigPersistence.with(writer);
+        this.persistenceRef = new AtomicReference<>(ConfigPersistence.with(writer));
 
         store.load(disk.file());
     }
@@ -115,8 +116,8 @@ public final class NexoConfig {
         markDirty();
     }
 
-    private synchronized void markDirty() {
-        persistence = persistence.markDirty();
+    private void markDirty() {
+        persistenceRef.updateAndGet(ConfigPersistence::markDirty);
     }
 
     /**
@@ -130,7 +131,7 @@ public final class NexoConfig {
      * @return a CompletableFuture that completes when the file is saved and dirty flag is reset
      */
     public CompletableFuture<Void> save() {
-        ConfigPersistence currentPersistence = persistence;
+        ConfigPersistence currentPersistence = persistenceRef.get();
         if (!currentPersistence.isDirty()) {
             return CompletableFuture.completedFuture(null);
         }
@@ -140,14 +141,15 @@ public final class NexoConfig {
 
     private CompletableFuture<Void> performSave() {
         var data = store.serialize();
-        var writeFuture = persistence.write(data);
+        var currentPersistence = persistenceRef.get();
+        var writeFuture = currentPersistence.write(data);
 
         return writeFuture.thenRun(this::markClean)
                 .exceptionally(throwable -> null);
     }
 
-    private synchronized void markClean() {
-        persistence = persistence.markClean();
+    private void markClean() {
+        persistenceRef.updateAndGet(ConfigPersistence::markClean);
     }
 
     /**

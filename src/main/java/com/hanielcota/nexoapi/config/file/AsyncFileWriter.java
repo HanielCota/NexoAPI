@@ -1,9 +1,10 @@
 package com.hanielcota.nexoapi.config.file;
 
 import lombok.NonNull;
-import lombok.SneakyThrows;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.concurrent.CompletableFuture;
@@ -58,7 +59,13 @@ public record AsyncFileWriter(@NonNull File target) {
                     new IllegalStateException("AsyncFileWriter executor has been shut down")
             );
         }
-        return CompletableFuture.runAsync(() -> writeSync(content), VIRTUAL_EXECUTOR);
+        return CompletableFuture.runAsync(() -> {
+            try {
+                writeSync(content);
+            } catch (IOException e) {
+                throw new UncheckedIOException("Failed to write config file: " + target.getPath(), e);
+            }
+        }, VIRTUAL_EXECUTOR);
     }
 
     /**
@@ -107,8 +114,11 @@ public record AsyncFileWriter(@NonNull File target) {
         }
     }
 
-    @SneakyThrows
-    private void writeSync(String content) {
-        Files.writeString(target.toPath(), content, StandardCharsets.UTF_8);
+    private void writeSync(String content) throws IOException {
+        try {
+            Files.writeString(target.toPath(), content, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IOException("Failed to write config file: " + target.getPath(), e);
+        }
     }
 }

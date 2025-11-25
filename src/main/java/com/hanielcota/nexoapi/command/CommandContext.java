@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -39,7 +40,20 @@ public record CommandContext(
     }
 
     /**
+     * Gets the command arguments as an immutable list.
+     * This is the preferred method as it avoids array allocation.
+     *
+     * @return the command arguments as an immutable list
+     */
+    @NotNull
+    public List<String> argsList() {
+        return input.arguments().values();
+    }
+
+    /**
      * Gets the command arguments as a String array.
+     * Note: This method allocates a new array on each call.
+     * Prefer using {@link #argsList()} when possible.
      *
      * @return the command arguments as a String array
      */

@@ -212,12 +212,18 @@ public record NexoSkullBuilder(
         Objects.requireNonNull(plugin, "Plugin cannot be null.");
         Objects.requireNonNull(consumer, "Consumer cannot be null.");
 
-        buildAsync().thenAccept(item -> {
-            if (!plugin.isEnabled()) {
-                return;
-            }
-            plugin.getServer().getScheduler().runTask(plugin, () -> consumer.accept(item));
-        });
+        buildAsync()
+                .thenAccept(item -> {
+                    if (!plugin.isEnabled()) {
+                        return;
+                    }
+                    plugin.getServer().getScheduler().runTask(plugin, () -> consumer.accept(item));
+                })
+                .exceptionally(throwable -> {
+                    plugin.getLogger().severe("Failed to build skull: " + throwable.getMessage());
+                    throwable.printStackTrace();
+                    return null;
+                });
     }
 
     /**
@@ -234,12 +240,18 @@ public record NexoSkullBuilder(
         Objects.requireNonNull(plugin, "Plugin cannot be null.");
         Objects.requireNonNull(consumer, "Consumer cannot be null.");
 
-        buildAsyncItem().thenAccept(item -> {
-            if (!plugin.isEnabled()) {
-                return;
-            }
-            plugin.getServer().getScheduler().runTask(plugin, () -> consumer.accept(item));
-        });
+        buildAsyncItem()
+                .thenAccept(item -> {
+                    if (!plugin.isEnabled()) {
+                        return;
+                    }
+                    plugin.getServer().getScheduler().runTask(plugin, () -> consumer.accept(item));
+                })
+                .exceptionally(throwable -> {
+                    plugin.getLogger().severe("Failed to build skull item: " + throwable.getMessage());
+                    throwable.printStackTrace();
+                    return null;
+                });
     }
 
     private CompletableFuture<NexoItem> createEmptySkullFuture() {
@@ -266,7 +278,7 @@ public record NexoSkullBuilder(
     }
 
     private NexoItem applyNameAndLore(NexoItem item) {
-        NexoItem result = item;
+        var result = item;
         
         if (name != null) {
             result = result.withName(name);

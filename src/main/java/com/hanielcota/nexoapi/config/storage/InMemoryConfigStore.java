@@ -2,10 +2,11 @@ package com.hanielcota.nexoapi.config.storage;
 
 import com.hanielcota.nexoapi.config.path.ConfigPath;
 import lombok.NonNull;
-import lombok.SneakyThrows;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * In-memory storage for YAML configuration data.
@@ -37,15 +38,21 @@ public record InMemoryConfigStore(@NonNull YamlConfiguration configuration) {
      * </p>
      *
      * @param source the source file to load from
+     * @throws RuntimeException if an I/O error occurs or the configuration is invalid
      */
-    @SneakyThrows
     public void load(@NonNull File source) {
         synchronized (LOCK) {
             // Check file existence inside synchronized block to prevent TOCTOU race condition
             if (!source.exists() || source.length() == 0) {
                 return;
             }
-            configuration.load(source);
+            try {
+                configuration.load(source);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to load config file: " + source.getPath(), e);
+            } catch (InvalidConfigurationException e) {
+                throw new RuntimeException("Invalid configuration file: " + source.getPath(), e);
+            }
         }
     }
 

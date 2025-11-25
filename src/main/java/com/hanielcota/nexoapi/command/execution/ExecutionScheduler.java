@@ -52,7 +52,13 @@ public final class ExecutionScheduler {
     }
 
     private void executeSync(@NotNull Runnable task) {
-        task.run();
+        if (!ownerPlugin.isEnabled()) {
+            return;
+        }
+
+        Server server = ownerPlugin.getServer();
+        BukkitScheduler scheduler = server.getScheduler();
+        scheduler.runTask(ownerPlugin, task);
     }
 
     private void executeAsync(@NotNull Runnable task) {

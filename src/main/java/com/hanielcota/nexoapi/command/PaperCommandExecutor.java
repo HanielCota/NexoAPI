@@ -3,6 +3,9 @@ package com.hanielcota.nexoapi.command;
 import com.hanielcota.nexoapi.command.execution.*;
 import com.hanielcota.nexoapi.command.model.*;
 import com.hanielcota.nexoapi.command.sub.SubCommandInvoker;
+import com.hanielcota.nexoapi.text.MiniMessageText;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -171,8 +174,15 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
         };
     }
 
+    private static final MiniMessageText UNKNOWN_SUBCOMMAND_MESSAGE = 
+            MiniMessageText.of("<red>Subcomando desconhecido: <gray>{subcommand}");
+
     private void sendUnknownSubCommandMessage(@NotNull CommandSender sender, @NotNull String subCommandToken) {
-        String message = "§cSubcomando desconhecido: §7" + subCommandToken;
+        Component message = UNKNOWN_SUBCOMMAND_MESSAGE.toComponent()
+                .replaceText(TextReplacementConfig.builder()
+                        .matchLiteral("{subcommand}")
+                        .replacement(subCommandToken)
+                        .build());
         sender.sendMessage(message);
     }
 

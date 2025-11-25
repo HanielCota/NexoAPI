@@ -88,29 +88,21 @@ public final class MojangSkinFetcher {
                 .thenApply(MojangSkinFetcher::extractTexture)
                 .exceptionally(throwable -> {
                     Throwable cause = throwable.getCause() != null ? throwable.getCause() : throwable;
-
-                    if (cause instanceof HttpTimeoutException) {
-                        throw new RuntimeException("Request to Mojang API timed out after " +
-                                REQUEST_TIMEOUT.toSeconds() + " seconds", cause);
-                    }
-
-                    if (cause instanceof java.net.ConnectException ||
-                        cause instanceof java.net.UnknownHostException) {
-                        throw new RuntimeException("Failed to connect to Mojang API: " +
-                                cause.getMessage(), cause);
-                    }
-
-                    if (cause instanceof java.io.IOException) {
-                        throw new RuntimeException("Network error while fetching skin from Mojang API: " +
-                                cause.getMessage(), cause);
-                    }
-
-                    // Re-throw other exceptions as-is
-                    if (cause instanceof RuntimeException) {
-                        throw (RuntimeException) cause;
-                    }
-
-                    throw new RuntimeException("Unexpected error while fetching skin from Mojang API", cause);
+                    
+                    String errorMessage = switch (cause) {
+                        case HttpTimeoutException e -> 
+                            "Request to Mojang API timed out after " + REQUEST_TIMEOUT.toSeconds() + " seconds";
+                        case java.net.ConnectException e -> 
+                            "Failed to connect to Mojang API: " + e.getMessage();
+                        case java.net.UnknownHostException e -> 
+                            "Failed to connect to Mojang API: " + e.getMessage();
+                        case java.io.IOException e -> 
+                            "Network error while fetching skin from Mojang API: " + e.getMessage();
+                        case RuntimeException e -> throw e; // Re-throw as-is
+                        default -> "Unexpected error while fetching skin from Mojang API";
+                    };
+                    
+                    throw new RuntimeException(errorMessage, cause);
                 });
     }
 
