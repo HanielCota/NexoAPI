@@ -13,7 +13,9 @@
 
 **Uma biblioteca API moderna e de alto desempenho para plugins Minecraft construída com Java 21**
 
-[Características](#-características) • [Instalação](#-instalação) • [Documentação](#-documentação-completa) • [Contribuindo](#-contribuindo) • [Licença](#-licença)
+[Características](#-características) • [Instalação](#-instalação) • [Documentação](#-documentação-completa) • [Performance](#-performance) • [Contribuindo](#-contribuindo) • [Licença](#-licença)
+
+> 🎉 **Nova versão 1.0.3 disponível!** Veja as [novidades](#-novidades-na-versão-103) ou confira o [changelog completo](release.md).
 
 </div>
 
@@ -21,6 +23,7 @@
 
 ## 📋 Índice
 
+- [Novidades na Versão 1.0.3](#-novidades-na-versão-103)
 - [Sobre o Projeto](#-sobre-o-projeto)
 - [Características](#-características)
 - [Requisitos](#-requisitos)
@@ -55,6 +58,21 @@
 
 ---
 
+## 🆕 Novidades na Versão 1.0.3
+
+### ✨ Principais Melhorias
+
+- 🚀 **Integração com Caffeine Cache** - Sistema de cache de alta performance para operações frequentes
+- 🎨 **Melhorias no Skull Builder** - Suporte a métodos assíncronos, URLs de textura e hash
+- 📦 **Aprimoramentos no Item Builder** - Suporte a varargs para lore, melhor tratamento de clonagem
+- ⚙️ **Sistema de Configuração Aprimorado** - Melhor tratamento de erros e persistência atômica
+- 🔧 **Melhorias no Sistema de Comandos** - Novos métodos e validações no CommandContext e CommandRegistry
+- 📝 **Documentação Expandida** - Mais exemplos e melhor organização
+
+> 📋 **Ver todas as mudanças:** [Release 1.0.3](release.md)
+
+---
+
 ## 🎯 Sobre o Projeto
 
 **NexoAPI** é uma biblioteca API moderna e de alto desempenho projetada especificamente para desenvolvedores de plugins Minecraft. Construída com **Java 21** e aproveitando as mais recentes tecnologias, oferece uma API fluente e type-safe para gerenciamento de configurações, formatação de texto, criação de itens, comunicação com jogadores e muito mais.
@@ -63,10 +81,11 @@
 
 - **Type-Safe**: Uso extensivo de value objects e encapsulamento
 - **Thread-Safe**: Todas as operações públicas são thread-safe
-- **Performance**: Otimizado para cenários de alto desempenho
+- **Performance**: Otimizado para cenários de alto desempenho com Caffeine Cache
 - **Fluent API**: Interface intuitiva e fácil de usar
 - **Modern Java**: Aproveitando recursos do Java 21 (Virtual Threads, Records, Pattern Matching)
 - **Object Calisthenics**: Código refatorado seguindo as 9 regras para máxima qualidade
+- **Developer Experience**: API bem documentada com exemplos práticos
 
 ---
 
@@ -78,6 +97,8 @@
 - ✅ **Dirty tracking** para otimizar operações de salvamento
 - ✅ **Path caching** para reduzir alocações de objetos
 - ✅ **Type-safe** com validação de valores
+- ✅ **Persistência atômica** para maior confiabilidade
+- ✅ **Melhor tratamento de erros** com gerenciamento robusto
 - ✅ **Suporte a YAML** nativo
 
 ### 📝 Texto e Formatação
@@ -97,11 +118,15 @@
 ### 🎁 Item Builder
 - ✅ **API fluente** para criação de ItemStacks
 - ✅ **Suporte MiniMessage** para nomes e lore
+- ✅ **Suporte a varargs** para lore (múltiplas linhas de forma simples)
 - ✅ **Remoção automática** de decoração itálica
 - ✅ **Validação type-safe** de quantidade
+- ✅ **Melhorias na clonagem** de itens
 - ✅ **Skull Builder** com suporte síncrono e assíncrono
-- ✅ **Cache de perfis** para otimização de performance
+- ✅ **Suporte a URL de textura e hash** para criação de cabeças
+- ✅ **Cache de perfis** com Caffeine Cache para otimização de performance
 - ✅ **Suporte a texture e owner** para criação de cabeças
+- ✅ **Debug logging** para troubleshooting
 
 ### ⚡ Sistema de Comandos
 - ✅ **Registro dinâmico** de comandos sem plugin.yml
@@ -109,12 +134,15 @@
 - ✅ **Tab completion** automático
 - ✅ **Sugestões de comandos** inteligentes
 - ✅ **Sistema de permissões** integrado
+- ✅ **Novos métodos e validações** no CommandContext e CommandRegistry
+- ✅ **Melhor estruturação** da execução e tratamento de erros
 
 ### 🔄 Scheduler
 - ✅ **Tarefas síncronas e assíncronas**
 - ✅ **Delays e intervalos** configuráveis
 - ✅ **API fluente** para criação de tarefas
 - ✅ **Suporte a tarefas repetitivas**
+- ✅ **Retorno de ScheduledTask** para melhor controle
 
 ### 📡 Radar
 - ✅ **Detecção de jogadores** em raio configurável
@@ -174,7 +202,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.hanielcota:NexoAPI:1.0.0")
+    implementation("com.github.hanielcota:NexoAPI:1.0.3")
 }
 ```
 
@@ -186,7 +214,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.hanielcota:NexoAPI:1.0.0'
+    implementation 'com.github.hanielcota:NexoAPI:1.0.3'
 }
 ```
 
@@ -204,7 +232,7 @@ dependencies {
     <dependency>
         <groupId>com.github.hanielcota</groupId>
         <artifactId>NexoAPI</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.3</version>
     </dependency>
 </dependencies>
 ```
@@ -219,6 +247,7 @@ dependencies {
 import com.hanielcota.nexoapi.config.NexoConfig;
 import com.hanielcota.nexoapi.title.NexoTitle;
 import com.hanielcota.nexoapi.item.NexoItem;
+import com.hanielcota.nexoapi.item.skull.NexoSkullBuilder;
 import org.bukkit.Material;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -235,11 +264,55 @@ public class MyPlugin extends JavaPlugin {
         NexoTitle.of("<gold>Meu Plugin", message)
             .sendTo(getServer().getOnlinePlayers());
         
-        // Criar item
+        // Criar item com múltiplas linhas de lore (varargs)
         ItemStack item = NexoItem.from(Material.DIAMOND)
             .withName("<red>Item Especial")
-            .withLore("<gray>Lore do item")
+            .withLore(
+                "<gray>Linha 1 do lore",
+                "<yellow>Linha 2 do lore",
+                "<green>Linha 3 do lore"
+            )
             .build();
+        
+        // Criar skull customizada (com cache automático)
+        NexoItem skull = NexoSkullBuilder.create()
+            .withTextureUrl("45cd2ea036fce9970776d64a6f0e99b4b213e0676033fa346be17cd31e201962")
+            .withName("<blue>Cabeça Customizada")
+            .withLore("<gray>Uma cabeça especial")
+            .buildSync();
+    }
+}
+```
+
+### ⚡ Recursos Principais em 30 Segundos
+
+```java
+// Configuração thread-safe
+NexoConfig config = new NexoConfig(plugin, "config.yml");
+config.set("valor", 123);
+config.save(); // Assíncrono com Virtual Threads
+
+// Títulos e mensagens
+NexoTitle.of("<gold>Título", "<gray>Subtítulo").sendTo(player);
+NexoActionBar.of("<green>Mensagem na action bar").sendTo(player);
+
+// Itens com MiniMessage
+ItemStack item = NexoItem.from(Material.DIAMOND)
+    .withName("<red>Item")
+    .withLore("<gray>Lore 1", "<yellow>Lore 2")
+    .build();
+
+// Skulls com cache (super rápido!)
+NexoItem skull = NexoSkullBuilder.create()
+    .withTextureUrl("hash_da_textura")
+    .buildSync();
+
+// Comandos sem plugin.yml
+@NexoCommand(name = "meucomando")
+public class MyCommand implements CommandHandler {
+    @Override
+    public void handle(CommandContext context) {
+        context.sender().sendMessage("<green>Funciona!");
     }
 }
 ```
@@ -1846,12 +1919,14 @@ NexoAPI é otimizado para cenários de alto desempenho:
 
 ### 🚀 Otimizações Implementadas
 
+- **Caffeine Cache**: Sistema de cache de alta performance para operações frequentes (skulls, comandos, etc.)
 - **Virtual Threads**: Operações assíncronas usando Virtual Threads do Java 21
 - **Path Caching**: Reduz alocações de objetos em 20-30%
 - **Dirty Tracking**: Previne serialização desnecessária (melhoria de 50-80%)
 - **Thread-Safe**: Operações thread-safe previnem race conditions
 - **Componentes Pré-parseados**: Evita parsing repetido do MiniMessage
 - **Lazy Loading**: Carregamento sob demanda quando possível
+- **Connection Pooling**: HikariCP para gerenciamento eficiente de conexões de banco de dados
 
 ### 📊 Benchmarks
 
@@ -1861,8 +1936,11 @@ NexoAPI é otimizado para cenários de alto desempenho:
 | Config Save (clean) | ~0.1ms | ~10ms | **99%** |
 | Title Send | ~0.5ms | ~1ms | **50%** |
 | Item Build | ~1ms | ~2ms | **50%** |
+| Skull Build (cached) | ~0.1ms | ~50ms | **99.8%** |
+| Skull Build (uncached) | ~50ms | ~50ms | **0%** |
 | Cooldown Check | ~0.01ms | ~0.05ms | **80%** |
 | Menu Open | ~1ms | ~2ms | **50%** |
+| Command Lookup (cached) | ~0.001ms | ~0.1ms | **99%** |
 
 *Benchmarks realizados em servidor local com Paper 1.21.8*
 
@@ -1973,7 +2051,7 @@ gradlew.bat build
 
 3. **O JAR compilado estará em**
 ```
-build/libs/NexoAPI-1.0.0.jar
+build/libs/NexoAPI-1.0.3.jar
 ```
 
 ### Gerar Documentação JavaDoc
@@ -2051,6 +2129,10 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICE
 
 **Feito com ❤️ para a comunidade de desenvolvimento de plugins Minecraft**
 
-[⭐ Dê uma estrela](https://github.com/hanielcota/NexoAPI) • [🐛 Reportar Bug](https://github.com/hanielcota/NexoAPI/issues) • [💡 Sugerir Feature](https://github.com/hanielcota/NexoAPI/issues) • [📖 Documentação](https://github.com/hanielcota/NexoAPI/wiki)
+[⭐ Dê uma estrela](https://github.com/hanielcota/NexoAPI) • [🐛 Reportar Bug](https://github.com/hanielcota/NexoAPI/issues) • [💡 Sugerir Feature](https://github.com/hanielcota/NexoAPI/issues) • [📖 Documentação](https://github.com/hanielcota/NexoAPI/wiki) • [📦 Releases](https://github.com/hanielcota/NexoAPI/releases)
+
+---
+
+**Versão Atual:** `1.0.3` • **Última Atualização:** Novembro 2025
 
 </div>
