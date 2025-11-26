@@ -41,6 +41,7 @@
   - [Formatação de Texto](#-formatação-de-texto)
   - [Sistema de Cores](#-sistema-de-cores)
   - [Sistema de Cooldown](#-sistema-de-cooldown)
+  - [Sistema de Database](#-sistema-de-database)
   - [Sistema de Menus](#-sistema-de-menus)
 - [Formato MiniMessage](#-formato-minimessage)
 - [Boas Práticas](#-boas-práticas)
@@ -65,6 +66,7 @@
 - **Performance**: Otimizado para cenários de alto desempenho
 - **Fluent API**: Interface intuitiva e fácil de usar
 - **Modern Java**: Aproveitando recursos do Java 21 (Virtual Threads, Records, Pattern Matching)
+- **Object Calisthenics**: Código refatorado seguindo as 9 regras para máxima qualidade
 
 ---
 
@@ -130,6 +132,17 @@
 - ✅ **Thread-safe** para operações concorrentes
 - ✅ **Verificação de tempo restante** de cooldowns
 - ✅ **Consumo inteligente** de cooldowns
+
+### 💾 Sistema de Database
+- ✅ **Connection pooling** com HikariCP para performance otimizada
+- ✅ **Suporte a múltiplos bancos** (MySQL, PostgreSQL, SQLite, H2, MariaDB)
+- ✅ **Operações assíncronas** com CompletableFuture
+- ✅ **Sistema de transações** com ACID garantido
+- ✅ **Prepared statements** para segurança contra SQL injection
+- ✅ **Auto-gerenciamento de recursos** (connections, statements, result sets)
+- ✅ **Type-safe** com value objects
+- ✅ **Thread-safe** para operações concorrentes
+- ✅ **Object Calisthenics** aplicado para código limpo e manutenível
 
 ### 📋 Sistema de Menus
 - ✅ **Menus estáticos** com layouts fixos
@@ -947,6 +960,441 @@ Duration javaDuration = Duration.ofMinutes(10);
 CooldownDuration fromJava = CooldownDuration.from(javaDuration);
 ```
 
+### 💾 Sistema de Database
+
+O NexoAPI fornece um sistema completo de gerenciamento de banco de dados usando HikariCP para connection pooling.
+
+#### Conexão com Banco de Dados
+
+```java
+import com.hanielcota.nexoapi.database.NexoDatabase;
+import com.hanielcota.nexoapi.database.property.DatabaseUrl;
+import com.hanielcota.nexoapi.database.property.DatabaseCredentials;
+import com.hanielcota.nexoapi.database.connection.ConnectionConfig;
+
+public class DatabaseExample extends JavaPlugin {
+    private NexoDatabase database;
+    
+    @Override
+    public void onEnable() {
+        // Configurar conexão MySQL
+        DatabaseUrl url = DatabaseUrl.mysqlLocalhost("meu_banco");
+        DatabaseCredentials credentials = DatabaseCredentials.of("root", "senha");
+        ConnectionConfig config = ConnectionConfig.of(url, credentials);
+        
+        // Conectar ao banco
+        database = NexoDatabase.connect(config);
+        
+        // Testar conexão
+        if (database.testConnection()) {
+            getLogger().info("Conectado ao banco de dados!");
+        }
+    }
+    
+    @Override
+    public void onDisable() {
+        // Fechar conexão
+        if (database != null) {
+            database.close();
+        }
+    }
+}
+```
+
+#### Configuração de URLs
+
+```java
+// MySQL
+DatabaseUrl mysqlLocal = DatabaseUrl.mysqlLocalhost("database");
+DatabaseUrl mysqlRemote = DatabaseUrl.mysql("192.168.1.100", 3306, "database");
+
+// PostgreSQL
+DatabaseUrl postgresLocal = DatabaseUrl.postgresqlLocalhost("database");
+DatabaseUrl postgresRemote = DatabaseUrl.postgresql("192.168.1.100", 5432, "database");
+
+// SQLite (arquivo local)
+DatabaseUrl sqlite = DatabaseUrl.sqlite("plugins/MeuPlugin/database.db");
+
+// H2 (embedded)
+DatabaseUrl h2 = DatabaseUrl.h2("plugins/MeuPlugin/database");
+
+// H2 (in-memory)
+DatabaseUrl h2Memory = DatabaseUrl.h2Memory("testdb");
+
+// URL customizada
+DatabaseUrl custom = DatabaseUrl.of("jdbc:mysql://host:port/database?params");
+```
+
+#### Configuração do Pool
+
+```java
+import com.hanielcota.nexoapi.database.property.PoolSize;
+import com.hanielcota.nexoapi.database.property.ConnectionTimeout;
+
+// Pool size padrão (5 min, 20 max)
+ConnectionConfig config = ConnectionConfig.of(url, credentials);
+
+// Pool size customizado
+ConnectionConfig configCustom = ConnectionConfig.of(url, credentials, PoolSize.of(10, 30));
+
+// Pool size e timeout customizados
+ConnectionConfig configFull = ConnectionConfig.of(
+    url, 
+    credentials, 
+    PoolSize.LARGE,
+    ConnectionTimeout.ofSeconds(60)
+);
+
+// Pool sizes pré-definidos
+PoolSize small = PoolSize.SMALL;    // 2 min, 5 max
+PoolSize medium = PoolSize.MEDIUM;  // 10 min, 30 max
+PoolSize large = PoolSize.LARGE;    // 20 min, 50 max
+```
+
+#### Executar Queries SELECT
+
+```java
+import com.hanielcota.nexoapi.database.query.PreparedQuery;
+import com.hanielcota.nexoapi.database.query.QueryResult;
+
+// Query simples
+PreparedQuery query = PreparedQuery.of("SELECT * FROM users");
+QueryResult result = database.executeQuery(query);
+
+// Verificar se há resultados
+if (result.hasRows()) {
+    getLogger().info("Encontrados " + result.getRowCount() + " usuários");
+}
+
+// Query com parâmetros
+PreparedQuery queryWithParams = PreparedQuery.of(
+    "SELECT * FROM users WHERE name = ? AND age > ?",
+    "João", 18
+);
+QueryResult result2 = database.executeQuery(queryWithParams);
+
+// Obter primeira linha
+result2.getFirstRow().ifPresent(row -> {
+    String name = (String) row.get("name");
+    int age = (Integer) row.get("age");
+    getLogger().info("Usuário: " + name + ", Idade: " + age);
+});
+
+// Obter valores específicos
+Optional<String> name = result2.getFirstString("name");
+Optional<Integer> age = result2.getFirstInt("age");
+Optional<Long> id = result2.getFirstLong("id");
+
+// Iterar sobre todas as linhas
+for (Map<String, Object> row : result2.getRows()) {
+    String userName = (String) row.get("name");
+    getLogger().info("Usuário: " + userName);
+}
+```
+
+#### Executar Queries UPDATE/INSERT/DELETE
+
+```java
+// UPDATE
+PreparedQuery updateQuery = PreparedQuery.of(
+    "UPDATE users SET coins = ? WHERE uuid = ?",
+    1000, playerUUID.toString()
+);
+int affectedRows = database.executeUpdate(updateQuery);
+getLogger().info("Linhas atualizadas: " + affectedRows);
+
+// INSERT com retorno do ID gerado
+PreparedQuery insertQuery = PreparedQuery.of(
+    "INSERT INTO users (uuid, name, coins) VALUES (?, ?, ?)",
+    playerUUID.toString(), player.getName(), 0
+);
+long generatedId = database.executeInsert(insertQuery);
+getLogger().info("ID gerado: " + generatedId);
+
+// DELETE
+PreparedQuery deleteQuery = PreparedQuery.of(
+    "DELETE FROM users WHERE last_login < ?",
+    System.currentTimeMillis() - 2592000000L // 30 dias
+);
+database.executeUpdate(deleteQuery);
+```
+
+#### Operações Assíncronas
+
+```java
+// Query assíncrona
+database.executeQueryAsync(PreparedQuery.of("SELECT * FROM users"))
+    .thenAccept(result -> {
+        getLogger().info("Encontrados " + result.getRowCount() + " usuários");
+    })
+    .exceptionally(throwable -> {
+        getLogger().severe("Erro ao buscar usuários: " + throwable.getMessage());
+        return null;
+    });
+
+// Update assíncrono
+database.executeUpdateAsync(PreparedQuery.of(
+    "UPDATE users SET coins = ? WHERE uuid = ?",
+    1000, playerUUID.toString()
+)).thenAccept(affectedRows -> {
+    player.sendMessage("Saldo atualizado!");
+});
+
+// Insert assíncrono
+database.executeInsertAsync(PreparedQuery.of(
+    "INSERT INTO logs (player, action, timestamp) VALUES (?, ?, ?)",
+    player.getName(), "LOGIN", System.currentTimeMillis()
+)).thenAccept(id -> {
+    getLogger().info("Log criado com ID: " + id);
+});
+```
+
+#### Transações
+
+```java
+// Transação simples
+database.transaction(tx -> {
+    tx.executeUpdate(PreparedQuery.of(
+        "UPDATE users SET coins = coins - ? WHERE uuid = ?",
+        100, playerUUID.toString()
+    ));
+    
+    tx.executeUpdate(PreparedQuery.of(
+        "INSERT INTO transactions (from_uuid, amount) VALUES (?, ?)",
+        playerUUID.toString(), 100
+    ));
+});
+
+// Transação com resultado
+int newBalance = database.transactionWithResult(tx -> {
+    // Deduzir moedas
+    tx.executeUpdate(PreparedQuery.of(
+        "UPDATE users SET coins = coins - ? WHERE uuid = ?",
+        100, playerUUID.toString()
+    ));
+    
+    // Buscar novo saldo
+    QueryResult result = tx.executeQuery(PreparedQuery.of(
+        "SELECT coins FROM users WHERE uuid = ?",
+        playerUUID.toString()
+    ));
+    
+    return result.getFirstInt("coins").orElse(0);
+});
+
+player.sendMessage("Novo saldo: " + newBalance);
+
+// Transação assíncrona
+database.transactionAsync(tx -> {
+    tx.executeUpdate(PreparedQuery.of("UPDATE users SET online = ? WHERE uuid = ?", true, playerUUID.toString()));
+    tx.executeUpdate(PreparedQuery.of("INSERT INTO login_logs (uuid, timestamp) VALUES (?, ?)", playerUUID.toString(), System.currentTimeMillis()));
+}).thenRun(() -> {
+    getLogger().info("Login registrado!");
+}).exceptionally(throwable -> {
+    getLogger().severe("Erro ao registrar login: " + throwable.getMessage());
+    return null;
+});
+```
+
+#### Transação Manual
+
+```java
+// Controle manual de transação
+try (Transaction tx = database.beginTransaction()) {
+    // Executar operações
+    tx.executeUpdate(PreparedQuery.of("UPDATE users SET coins = coins + ? WHERE uuid = ?", 500, playerUUID.toString()));
+    tx.executeUpdate(PreparedQuery.of("INSERT INTO transactions (uuid, amount) VALUES (?, ?)", playerUUID.toString(), 500));
+    
+    // Commit manual
+    tx.commit();
+} catch (SQLException e) {
+    getLogger().severe("Erro na transação: " + e.getMessage());
+    // Rollback automático ao fechar o try-with-resources
+}
+```
+
+#### Batch Operations
+
+```java
+// Executar múltiplas queries do mesmo tipo
+PreparedQuery[] queries = {
+    PreparedQuery.of("UPDATE users SET online = ? WHERE uuid = ?", false, uuid1.toString()),
+    PreparedQuery.of("UPDATE users SET online = ? WHERE uuid = ?", false, uuid2.toString()),
+    PreparedQuery.of("UPDATE users SET online = ? WHERE uuid = ?", false, uuid3.toString())
+};
+
+int[] results = database.executeBatch(queries);
+getLogger().info("Queries executadas: " + results.length);
+
+// Batch assíncrono
+database.executeBatchAsync(queries).thenAccept(batchResults -> {
+    getLogger().info("Batch concluído!");
+});
+```
+
+#### DDL (CREATE, ALTER, DROP)
+
+```java
+// Criar tabela
+String createTableSQL = """
+    CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        uuid VARCHAR(36) NOT NULL UNIQUE,
+        name VARCHAR(16) NOT NULL,
+        coins INT DEFAULT 0,
+        last_login BIGINT,
+        INDEX idx_uuid (uuid)
+    )
+""";
+
+database.execute(createTableSQL);
+
+// Alterar tabela
+database.execute("ALTER TABLE users ADD COLUMN experience INT DEFAULT 0");
+
+// Criar índice
+database.execute("CREATE INDEX idx_name ON users(name)");
+
+// Assíncrono
+database.executeAsync(createTableSQL).thenRun(() -> {
+    getLogger().info("Tabela criada!");
+});
+```
+
+#### Monitoramento do Pool
+
+```java
+import com.hanielcota.nexoapi.database.connection.PoolStatus;
+
+// Obter status do pool
+PoolStatus status = database.getPoolStatus();
+
+getLogger().info("Conexões ativas: " + status.active());
+getLogger().info("Conexões ociosas: " + status.idle());
+getLogger().info("Total de conexões: " + status.total());
+getLogger().info("Threads aguardando: " + status.awaiting());
+getLogger().info("Utilização: " + (status.utilization() * 100) + "%");
+
+// Verificar saúde do pool
+if (status.isHealthy()) {
+    getLogger().info("Pool está saudável!");
+}
+
+if (status.isAtMaxCapacity()) {
+    getLogger().warning("Pool está no limite máximo!");
+}
+
+// Evitar conexões ociosas
+database.evictIdleConnections();
+```
+
+#### Exemplo Completo: Sistema de Economia
+
+```java
+import com.hanielcota.nexoapi.database.*;
+import com.hanielcota.nexoapi.database.query.*;
+import com.hanielcota.nexoapi.database.property.*;
+import com.hanielcota.nexoapi.database.connection.*;
+import org.bukkit.entity.Player;
+import java.util.concurrent.CompletableFuture;
+
+public class EconomyManager {
+    private final NexoDatabase database;
+    
+    public EconomyManager(JavaPlugin plugin) {
+        // Configurar banco
+        DatabaseUrl url = DatabaseUrl.mysqlLocalhost("economy");
+        DatabaseCredentials credentials = DatabaseCredentials.of("root", "password");
+        ConnectionConfig config = ConnectionConfig.of(url, credentials, PoolSize.MEDIUM);
+        
+        this.database = NexoDatabase.connect(config);
+        
+        // Criar tabela
+        createTables();
+    }
+    
+    private void createTables() {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS economy_users (
+                uuid VARCHAR(36) PRIMARY KEY,
+                name VARCHAR(16) NOT NULL,
+                balance DECIMAL(15,2) DEFAULT 0.00,
+                created_at BIGINT,
+                updated_at BIGINT,
+                INDEX idx_balance (balance)
+            )
+        """;
+        
+        try {
+            database.execute(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public CompletableFuture<Double> getBalance(Player player) {
+        PreparedQuery query = PreparedQuery.of(
+            "SELECT balance FROM economy_users WHERE uuid = ?",
+            player.getUniqueId().toString()
+        );
+        
+        return database.executeQueryAsync(query)
+            .thenApply(result -> result.getFirstDouble("balance").orElse(0.0));
+    }
+    
+    public CompletableFuture<Void> setBalance(Player player, double amount) {
+        PreparedQuery query = PreparedQuery.of(
+            "INSERT INTO economy_users (uuid, name, balance, created_at, updated_at) VALUES (?, ?, ?, ?, ?) " +
+            "ON DUPLICATE KEY UPDATE balance = ?, name = ?, updated_at = ?",
+            player.getUniqueId().toString(),
+            player.getName(),
+            amount,
+            System.currentTimeMillis(),
+            System.currentTimeMillis(),
+            amount,
+            player.getName(),
+            System.currentTimeMillis()
+        );
+        
+        return database.executeUpdateAsync(query).thenRun(() -> {});
+    }
+    
+    public CompletableFuture<Boolean> transferMoney(Player from, Player to, double amount) {
+        return database.transactionWithResultAsync(tx -> {
+            // Verificar saldo do remetente
+            QueryResult fromResult = tx.executeQuery(PreparedQuery.of(
+                "SELECT balance FROM economy_users WHERE uuid = ?",
+                from.getUniqueId().toString()
+            ));
+            
+            double fromBalance = fromResult.getFirstDouble("balance").orElse(0.0);
+            
+            if (fromBalance < amount) {
+                return false; // Saldo insuficiente
+            }
+            
+            // Deduzir do remetente
+            tx.executeUpdate(PreparedQuery.of(
+                "UPDATE economy_users SET balance = balance - ?, updated_at = ? WHERE uuid = ?",
+                amount, System.currentTimeMillis(), from.getUniqueId().toString()
+            ));
+            
+            // Adicionar ao destinatário
+            tx.executeUpdate(PreparedQuery.of(
+                "UPDATE economy_users SET balance = balance + ?, updated_at = ? WHERE uuid = ?",
+                amount, System.currentTimeMillis(), to.getUniqueId().toString()
+            ));
+            
+            return true;
+        });
+    }
+    
+    public void close() {
+        database.close();
+    }
+}
+```
+
 ### 📋 Sistema de Menus
 
 #### Menu Estático
@@ -1296,6 +1744,62 @@ CooldownService service1 = CooldownService.createDefault(); // ❌
 CooldownService service2 = CooldownService.createDefault(); // ❌
 ```
 
+### ✅ Database
+
+```java
+// ✅ BOM: Criar uma única instância de NexoDatabase
+private final NexoDatabase database;
+
+public MyPlugin() {
+    DatabaseUrl url = DatabaseUrl.mysqlLocalhost("database");
+    DatabaseCredentials credentials = DatabaseCredentials.of("root", "password");
+    ConnectionConfig config = ConnectionConfig.of(url, credentials);
+    this.database = NexoDatabase.connect(config);
+}
+
+// ✅ BOM: Sempre usar prepared statements
+PreparedQuery query = PreparedQuery.of("SELECT * FROM users WHERE uuid = ?", uuid);
+database.executeQuery(query);
+
+// ❌ EVITAR: Concatenação de strings (SQL injection)
+String sql = "SELECT * FROM users WHERE uuid = '" + uuid + "'"; // ❌ PERIGOSO!
+
+// ✅ BOM: Usar operações assíncronas para não bloquear o servidor
+database.executeQueryAsync(query).thenAccept(result -> {
+    // Processar resultado
+});
+
+// ❌ EVITAR: Operações síncronas longas no thread principal
+database.executeQuery(complexQuery); // ❌ Pode causar lag!
+
+// ✅ BOM: Usar transações para operações atômicas
+database.transaction(tx -> {
+    tx.executeUpdate(query1);
+    tx.executeUpdate(query2);
+    // Tudo ou nada - ACID garantido
+});
+
+// ✅ BOM: Sempre fechar a conexão no onDisable
+@Override
+public void onDisable() {
+    if (database != null) {
+        database.close();
+    }
+}
+
+// ✅ BOM: Monitorar status do pool periodicamente
+PoolStatus status = database.getPoolStatus();
+if (status.utilization() > 0.8) {
+    getLogger().warning("Pool de conexões com alta utilização!");
+}
+
+// ✅ BOM: Usar try-with-resources para transações manuais
+try (Transaction tx = database.beginTransaction()) {
+    tx.executeUpdate(query);
+    tx.commit();
+}
+```
+
 ### ✅ Menus
 
 ```java
@@ -1421,6 +1925,11 @@ NexoAPI/
 │   │   │       ├── title/               # Títulos
 │   │   │       ├── cooldown/            # Sistema de cooldown
 │   │   │       │   └── property/        # Propriedades de cooldown
+│   │   │       ├── database/            # Sistema de database
+│   │   │       │   ├── connection/      # Connection pooling (HikariCP)
+│   │   │       │   ├── query/           # Execução de queries
+│   │   │       │   ├── transaction/     # Sistema de transações
+│   │   │       │   └── property/        # Value objects (URL, credentials, etc)
 │   │   │       ├── menu/                # Sistema de menus
 │   │   │       │   ├── pagination/      # Menus paginados
 │   │   │       │   ├── staticmenu/     # Menus estáticos

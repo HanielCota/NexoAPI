@@ -1,6 +1,6 @@
 package com.hanielcota.nexoapi.command.model;
 
-import java.util.Objects;
+import com.hanielcota.nexoapi.validation.OptionalString;
 
 /**
  * Represents a command description.
@@ -12,7 +12,7 @@ import java.util.Objects;
 public record CommandDescription(String value) {
 
     public CommandDescription {
-        value = value == null ? "" : value.trim();
+        value = OptionalString.normalize(value);
     }
 
     /**
@@ -22,7 +22,7 @@ public record CommandDescription(String value) {
      * @return a new CommandDescription instance
      */
     public static CommandDescription from(String rawValue) {
-        return new CommandDescription(Objects.requireNonNullElse(rawValue, ""));
+        return new CommandDescription(rawValue);
     }
 
     /**

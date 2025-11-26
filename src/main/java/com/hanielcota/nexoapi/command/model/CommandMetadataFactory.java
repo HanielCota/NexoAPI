@@ -30,13 +30,15 @@ public final class CommandMetadataFactory {
         var commandPermission = CommandPermission.from(annotation.permission());
         var aliases = extractAliases(annotation);
         var executionType = resolveExecutionType(annotation);
+        var cooldown = CommandCooldown.from(annotation.cooldown());
 
         return new CommandMetadata(
                 commandName,
                 commandDescription,
                 commandPermission,
                 aliases,
-                executionType
+                executionType,
+                cooldown
         );
     }
 

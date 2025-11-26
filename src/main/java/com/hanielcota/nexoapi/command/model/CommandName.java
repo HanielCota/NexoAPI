@@ -1,8 +1,7 @@
 package com.hanielcota.nexoapi.command.model;
 
+import com.hanielcota.nexoapi.validation.NonEmptyString;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Objects;
 
 /**
  * Represents a validated command name.
@@ -14,12 +13,7 @@ import java.util.Objects;
 public record CommandName(@NotNull String value) {
 
     public CommandName {
-        Objects.requireNonNull(value, "Command name cannot be null.");
-        String trimmedValue = value.trim();
-        if (trimmedValue.isEmpty()) {
-            throw new IllegalArgumentException("Command name cannot be blank.");
-        }
-        value = trimmedValue.toLowerCase();
+        value = NonEmptyString.validateAndNormalize(value, "Command name");
     }
 
     /**

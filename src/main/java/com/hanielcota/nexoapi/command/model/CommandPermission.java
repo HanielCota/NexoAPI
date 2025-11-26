@@ -1,6 +1,6 @@
 package com.hanielcota.nexoapi.command.model;
 
-import java.util.Objects;
+import com.hanielcota.nexoapi.validation.OptionalString;
 
 /**
  * Represents a command permission.
@@ -11,7 +11,7 @@ import java.util.Objects;
  */
 public record CommandPermission(String value) {
     public CommandPermission {
-        value = value == null ? "" : value.trim();
+        value = OptionalString.normalize(value);
     }
 
     /**
@@ -21,7 +21,7 @@ public record CommandPermission(String value) {
      * @return a new CommandPermission instance
      */
     public static CommandPermission from(String rawValue) {
-        return new CommandPermission(Objects.requireNonNullElse(rawValue, ""));
+        return new CommandPermission(rawValue);
     }
 
     /**
@@ -30,7 +30,7 @@ public record CommandPermission(String value) {
      * @return true if permission is required, false otherwise
      */
     public boolean isRequired() {
-        return !value.isEmpty();
+        return OptionalString.isPresent(value);
     }
 }
 

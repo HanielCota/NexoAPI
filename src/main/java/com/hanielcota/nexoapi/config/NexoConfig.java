@@ -1,5 +1,8 @@
 package com.hanielcota.nexoapi.config;
 
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.hanielcota.nexoapi.config.file.AsyncFileWriter;
 import com.hanielcota.nexoapi.config.file.ConfigFile;
 import com.hanielcota.nexoapi.config.path.ConfigPath;
@@ -9,24 +12,39 @@ import lombok.NonNull;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Asynchronous configuration API for Minecraft plugins.
+ * Asynchronous configuration API for Minecraft plugins with intelligent caching.
  * Manages YAML configuration files with in-memory storage and asynchronous file writing.
  * <p>
  * This class provides a thread-safe way to manage configuration files, allowing
  * plugins to read and write configuration values without blocking the main thread.
+ * </p>
+ * <p>
+ * Uses Caffeine Cache for path caching to optimize memory usage and provide
+ * automatic cleanup of unused paths.
  * </p>
  *
  * @since 1.0.0
  */
 public final class NexoConfig {
 
-    private static final Map<String, ConfigPath> PATH_CACHE = new ConcurrentHashMap<>();
+    /**
+     * Caffeine cache for config paths.
+     * Configuration:
+     * - Maximum size: 500 paths
+     * - Expire after access: 10 minutes
+     * - Statistics: enabled
+     */
+    private static final LoadingCache<String, ConfigPath> PATH_CACHE = 
+        Caffeine.newBuilder()
+            .maximumSize(500) // Reasonable limit for most configs
+            .expireAfterAccess(10, TimeUnit.MINUTES) // Auto-cleanup unused paths
+            .recordStats() // Enable statistics
+            .build(ConfigPath::new);
 
     private final InMemoryConfigStore store;
     private final AtomicReference<ConfigPersistence> persistenceRef;
@@ -86,7 +104,10 @@ public final class NexoConfig {
      * Retrieves a value from the configuration.
      * Returns the default value if the path doesn't exist.
      * <p>
-     * ConfigPath instances are cached to reduce object allocations.
+     * ConfigPath instances are intelligently cached using Caffeine Cache:
+     * - Frequently used paths remain in cache
+     * - Unused paths are automatically cleaned up after 10 minutes
+     * - Maximum 500 paths cached (prevents memory bloat)
      * </p>
      *
      * @param path         the configuration path (e.g., "database.host")
@@ -95,7 +116,7 @@ public final class NexoConfig {
      * @return the configuration value or the default value
      */
     public <T> T get(@NonNull String path, T defaultValue) {
-        ConfigPath configPath = PATH_CACHE.computeIfAbsent(path, ConfigPath::new);
+        ConfigPath configPath = PATH_CACHE.get(path);
         return store.retrieve(configPath, defaultValue);
     }
 
@@ -103,7 +124,7 @@ public final class NexoConfig {
      * Sets a value in the configuration.
      * The value will be stored in memory and persisted when {@link #save()} is called.
      * <p>
-     * ConfigPath instances are cached to reduce object allocations.
+     * ConfigPath instances are intelligently cached using Caffeine Cache.
      * This operation marks the configuration as dirty, requiring a save.
      * </p>
      *
@@ -111,9 +132,42 @@ public final class NexoConfig {
      * @param value the value to set
      */
     public void set(@NonNull String path, Object value) {
-        ConfigPath configPath = PATH_CACHE.computeIfAbsent(path, ConfigPath::new);
+        ConfigPath configPath = PATH_CACHE.get(path);
         store.update(configPath, value);
         markDirty();
+    }
+    
+    /**
+     * Gets cache performance statistics for config paths.
+     * <p>
+     * Useful metrics:
+     * - Hit rate: should be very high (95%+) for typical usage
+     * - Miss rate: only when accessing new paths for the first time
+     * - Eviction count: number of unused paths automatically removed
+     * </p>
+     *
+     * @return cache statistics for path cache
+     */
+    public static CacheStats getPathCacheStats() {
+        return PATH_CACHE.stats();
+    }
+    
+    /**
+     * Gets the current number of cached config paths.
+     *
+     * @return number of paths currently in cache
+     */
+    public static long getPathCacheSize() {
+        return PATH_CACHE.estimatedSize();
+    }
+    
+    /**
+     * Clears the path cache.
+     * This is rarely needed, but can be useful for testing or
+     * if you want to force recreation of path objects.
+     */
+    public static void clearPathCache() {
+        PATH_CACHE.invalidateAll();
     }
 
     private void markDirty() {

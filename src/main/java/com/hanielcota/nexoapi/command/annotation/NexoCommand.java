@@ -41,5 +41,12 @@ public @interface NexoCommand {
      * Default is false (synchronous execution).
      */
     boolean async() default false;
+
+    /**
+     * Cooldown time in seconds before the command can be used again by the same player.
+     * Default is 0 (no cooldown).
+     * Only applies to players, console commands are not affected.
+     */
+    long cooldown() default 0;
 }
 

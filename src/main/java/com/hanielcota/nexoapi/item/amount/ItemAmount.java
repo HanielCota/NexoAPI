@@ -1,5 +1,7 @@
 package com.hanielcota.nexoapi.item.amount;
 
+import com.hanielcota.nexoapi.validation.NumericValidation;
+
 /**
  * Represents a validated amount for an item stack.
  * Ensures the value is within valid Minecraft limits (1–64).
@@ -13,12 +15,7 @@ public record ItemAmount(int amount) {
     private static final int MAX = 64;
 
     public ItemAmount {
-        if (amount < MIN) {
-            throw new IllegalArgumentException("Item amount cannot be less than 1.");
-        }
-        if (amount > MAX) {
-            throw new IllegalArgumentException("Item amount cannot exceed 64.");
-        }
+        NumericValidation.validateRange(amount, MIN, MAX, "Item amount");
     }
 
     /**

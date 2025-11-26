@@ -1,32 +1,58 @@
 package com.hanielcota.nexoapi.item.skull.cache;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.hanielcota.nexoapi.item.skull.value.SkullTexture;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
- * First-class collection for cached skull profiles.
- * Encapsulates all operations related to the profile cache.
+ * First-class collection for cached skull profiles using Caffeine Cache.
+ * Provides automatic eviction, size limits, and performance statistics.
+ * <p>
+ * Features:
+ * - Maximum 1000 cached profiles (prevents memory bloat)
+ * - Auto-expires after 30 minutes of no access
+ * - Performance statistics (hit rate, miss rate, etc.)
+ * </p>
  *
- * @param cache the underlying cache map
+ * @param cache the underlying Caffeine cache
  * @since 1.0.0
  */
-public record SkullProfileMap(@NotNull Map<String, PlayerProfile> cache) {
+public record SkullProfileMap(@NotNull Cache<String, PlayerProfile> cache) {
 
     /**
-     * Creates a new empty SkullProfileMap.
+     * Creates a new empty SkullProfileMap with optimized Caffeine configuration.
+     * <p>
+     * Configuration:
+     * - Maximum size: 1000 profiles
+     * - Expire after access: 30 minutes
+     * - Statistics: enabled
+     * </p>
      *
      * @return a new empty SkullProfileMap instance
      */
     public static SkullProfileMap empty() {
-        return new SkullProfileMap(new ConcurrentHashMap<>());
+        Cache<String, PlayerProfile> cache = Caffeine.newBuilder()
+                .maximumSize(1000) // Limit to 1000 profiles to prevent memory bloat
+                .expireAfterAccess(30, TimeUnit.MINUTES) // Remove unused profiles after 30min
+                .recordStats() // Enable performance statistics
+                .build();
+        
+        return new SkullProfileMap(cache);
     }
 
     /**
      * Gets or creates a player profile for the given texture.
+     * <p>
+     * This method benefits from Caffeine's intelligent caching:
+     * - Cache hits are extremely fast (~0.1ms)
+     * - Cache misses create the profile and cache it automatically
+     * - Automatic eviction of old/unused profiles
+     * </p>
      *
      * @param texture      the skull texture
      * @param debugEnabled whether to log debug messages for cache hits
@@ -35,19 +61,19 @@ public record SkullProfileMap(@NotNull Map<String, PlayerProfile> cache) {
     public PlayerProfile getOrCreate(@NotNull SkullTexture texture, boolean debugEnabled) {
         String key = texture.base64();
         
-        // Check if the key already exists in cache (cache hit)
-        // We check before computeIfAbsent to detect cache hits
-        boolean isCacheHit = cache.containsKey(key);
+        // Get from cache or compute if absent
+        PlayerProfile profile = cache.get(key, k -> createProfile(texture));
         
-        PlayerProfile profile = cache.computeIfAbsent(key, k -> {
-            // This lambda is only called if the key doesn't exist (cache miss)
-            return createProfile(texture);
-        });
-        
-        // Log debug message if cache was hit and debug is enabled
-        if (debugEnabled && isCacheHit) {
+        // Log debug information if enabled
+        if (debugEnabled) {
+            CacheStats stats = cache.stats();
             String keyPreview = key.length() > 20 ? key.substring(0, 20) + "..." : key;
-            System.out.println("[SkullProfileCache] Cache hit para texture: " + keyPreview);
+            System.out.println(String.format(
+                "[SkullProfileCache] Texture: %s | Hit Rate: %.2f%% | Total Requests: %d",
+                keyPreview,
+                stats.hitRate() * 100,
+                stats.requestCount()
+            ));
         }
         
         return profile;
@@ -58,10 +84,32 @@ public record SkullProfileMap(@NotNull Map<String, PlayerProfile> cache) {
     }
 
     /**
+     * Gets cache statistics including hit rate, miss rate, and eviction count.
+     * <p>
+     * This is useful for monitoring cache performance and tuning parameters.
+     * </p>
+     *
+     * @return cache statistics
+     */
+    public CacheStats getStats() {
+        return cache.stats();
+    }
+
+    /**
+     * Gets the current number of cached profiles.
+     *
+     * @return the number of entries in the cache
+     */
+    public long size() {
+        return cache.estimatedSize();
+    }
+
+    /**
      * Clears all cached profiles.
+     * This will cause all subsequent requests to create new profiles.
      */
     public void clear() {
-        cache.clear();
+        cache.invalidateAll();
     }
 }
 

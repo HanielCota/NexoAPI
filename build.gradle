@@ -26,6 +26,15 @@ dependencies {
 
     // Gson for JSON parsing in MojangSkinFetcher
     compileOnly("com.google.code.gson:gson:2.13.2")
+    
+    // HikariCP for database connection pooling
+    compileOnly("com.zaxxer:HikariCP:5.1.0")
+    
+    // SLF4J API (required by HikariCP)
+    compileOnly("org.slf4j:slf4j-api:2.0.9")
+    
+    // Caffeine Cache for high-performance caching
+    compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.3")
 }
 
 java {

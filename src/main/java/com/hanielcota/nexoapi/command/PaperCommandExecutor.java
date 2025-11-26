@@ -32,6 +32,7 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
     private final Plugin ownerPlugin;
     private final SubCommandResolver subCommandResolver;
     private final PermissionChecker permissionChecker;
+    private final CooldownChecker cooldownChecker;
     private final ExecutionScheduler executionScheduler;
     private final ExceptionHandler exceptionHandler;
     private final TabCompletionService tabCompletionService;
@@ -41,6 +42,7 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
         this.ownerPlugin = Objects.requireNonNull(ownerPlugin, "Plugin cannot be null.");
         this.subCommandResolver = SubCommandResolver.create();
         this.permissionChecker = PermissionChecker.create();
+        this.cooldownChecker = CooldownChecker.create();
         this.executionScheduler = ExecutionScheduler.create(ownerPlugin);
         this.exceptionHandler = ExceptionHandler.create(registeredCommand, ownerPlugin);
         this.tabCompletionService = TabCompletionService.create();
@@ -110,6 +112,8 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
     ) {
         var metadata = definition.metadata();
         var permission = metadata.permission();
+        var cooldown = metadata.cooldown();
+        var commandName = metadata.name();
         var sender = context.sender();
 
         if (!permissionChecker.isAllowed(sender, permission)) {
@@ -117,8 +121,13 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
             return;
         }
 
+        if (!cooldownChecker.isAllowed(sender, commandName, cooldown)) {
+            cooldownChecker.sendCooldownMessage(sender, commandName, cooldown);
+            return;
+        }
+
         var handler = registeredCommand.handler();
-        Runnable task = createRootExecutionTask(handler, context);
+        Runnable task = createRootExecutionTask(handler, context, commandName, cooldown);
         var executionType = metadata.executionType();
         executionScheduler.schedule(task, executionType);
     }
@@ -132,6 +141,8 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
         var subCommandMetadata = invoker.metadata();
         var rootMetadata = definition.metadata();
         var effectivePermission = permissionResolver.resolve(subCommandMetadata, rootMetadata);
+        var cooldown = rootMetadata.cooldown();
+        var commandName = rootMetadata.name();
         var sender = context.sender();
 
         if (!permissionChecker.isAllowed(sender, effectivePermission)) {
@@ -139,8 +150,13 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
             return;
         }
 
+        if (!cooldownChecker.isAllowed(sender, commandName, cooldown)) {
+            cooldownChecker.sendCooldownMessage(sender, commandName, cooldown);
+            return;
+        }
+
         var handler = registeredCommand.handler();
-        Runnable task = createSubCommandExecutionTask(invoker, handler, context);
+        Runnable task = createSubCommandExecutionTask(invoker, handler, context, commandName, cooldown);
         var executionType = rootMetadata.executionType();
         executionScheduler.schedule(task, executionType);
     }
@@ -148,11 +164,14 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
     @NotNull
     private Runnable createRootExecutionTask(
             @NotNull CommandHandler handler,
-            @NotNull CommandContext context
+            @NotNull CommandContext context,
+            @NotNull CommandName commandName,
+            @NotNull CommandCooldown cooldown
     ) {
         return () -> {
             try {
                 handler.handle(context);
+                cooldownChecker.recordExecution(context.sender(), commandName);
             } catch (Exception exception) {
                 exceptionHandler.handle(context.sender(), exception);
             }
@@ -163,11 +182,14 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
     private Runnable createSubCommandExecutionTask(
             @NotNull SubCommandInvoker invoker,
             @NotNull CommandHandler handler,
-            @NotNull CommandContext context
+            @NotNull CommandContext context,
+            @NotNull CommandName commandName,
+            @NotNull CommandCooldown cooldown
     ) {
         return () -> {
             try {
                 invoker.invoke(handler, context);
+                cooldownChecker.recordExecution(context.sender(), commandName);
             } catch (Exception exception) {
                 exceptionHandler.handle(context.sender(), exception);
             }

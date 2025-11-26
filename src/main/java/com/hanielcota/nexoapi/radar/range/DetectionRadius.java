@@ -1,5 +1,7 @@
 package com.hanielcota.nexoapi.radar.range;
 
+import com.hanielcota.nexoapi.validation.NumericValidation;
+
 /**
  * Represents the detection radius of a radar in blocks.
  * Encapsulates the radius value and provides validation.
@@ -17,10 +19,7 @@ public record DetectionRadius(double blocks) {
      * @throws IllegalArgumentException if blocks is less than or equal to zero
      */
     public static DetectionRadius ofBlocks(double blocks) {
-        if (blocks <= 0) {
-            throw new IllegalArgumentException("Radius must be greater than zero");
-        }
-
+        NumericValidation.validatePositive(blocks, "Detection radius");
         return new DetectionRadius(blocks);
     }
 

@@ -1,6 +1,7 @@
 package com.hanielcota.nexoapi.command;
 
-import com.hanielcota.nexoapi.command.annotation.NexoCommand;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
+import com.hanielcota.nexoapi.command.cache.CommandDefinitionCache;
 import com.hanielcota.nexoapi.command.model.*;
 import com.hanielcota.nexoapi.command.registry.CommandLabelMap;
 import com.hanielcota.nexoapi.command.registry.CommandLabelSet;
@@ -15,18 +16,29 @@ import java.lang.reflect.Method;
 import java.util.Objects;
 
 /**
- * Registry for dynamic command registration.
+ * Registry for dynamic command registration with intelligent caching.
  * Registers commands directly to Bukkit's CommandMap without requiring plugin.yml entries.
+ * <p>
+ * Uses Caffeine Cache to avoid re-parsing command annotations,
+ * improving registration performance especially for plugins that
+ * dynamically register/re-register commands.
+ * </p>
  *
  * @since 1.0.0
  */
 public final class CommandRegistry {
     private final Plugin ownerPlugin;
     private final CommandLabelMap commandsByLabel;
+    private final CommandDefinitionCache definitionCache;
 
-    private CommandRegistry(@NotNull Plugin ownerPlugin, @NotNull CommandLabelMap commandsByLabel) {
+    private CommandRegistry(
+        @NotNull Plugin ownerPlugin, 
+        @NotNull CommandLabelMap commandsByLabel,
+        @NotNull CommandDefinitionCache definitionCache
+    ) {
         this.ownerPlugin = Objects.requireNonNull(ownerPlugin, "Plugin cannot be null.");
         this.commandsByLabel = Objects.requireNonNull(commandsByLabel, "Command label map cannot be null.");
+        this.definitionCache = Objects.requireNonNull(definitionCache, "Definition cache cannot be null.");
     }
 
     /**
@@ -37,12 +49,20 @@ public final class CommandRegistry {
      */
     public static CommandRegistry create(@NotNull Plugin ownerPlugin) {
         Objects.requireNonNull(ownerPlugin, "Plugin cannot be null.");
-        return new CommandRegistry(ownerPlugin, CommandLabelMap.empty());
+        return new CommandRegistry(
+            ownerPlugin, 
+            CommandLabelMap.empty(),
+            CommandDefinitionCache.create()
+        );
     }
 
     /**
      * Registers a command handler.
      * The handler class must be annotated with @NexoCommand.
+     * <p>
+     * This method uses caching to avoid re-parsing annotations,
+     * making subsequent registrations of the same command class very fast.
+     * </p>
      *
      * @param handler the command handler instance
      * @throws IllegalArgumentException if the handler is not annotated with @NexoCommand
@@ -52,13 +72,10 @@ public final class CommandRegistry {
         Objects.requireNonNull(handler, "Command handler cannot be null.");
 
         Class<?> handlerClass = handler.getClass();
-        NexoCommand annotation = handlerClass.getAnnotation(NexoCommand.class);
-        if (annotation == null) {
-            String message = "Handler class must be annotated with @NexoCommand: " + handlerClass.getName();
-            throw new IllegalArgumentException(message);
-        }
-
-        var commandDefinition = CommandDefinitionFactory.from(annotation, handlerClass);
+        
+        // Use cache to get command definition (much faster on subsequent calls)
+        var commandDefinition = definitionCache.getDefinition(handlerClass);
+        
         validateCommandNotRegistered(commandDefinition);
         var registeredCommand = new RegisteredCommand(commandDefinition, handler);
 
@@ -71,6 +88,38 @@ public final class CommandRegistry {
             String message = "Failed to register command: " + commandName.value();
             throw new IllegalStateException(message, exception);
         }
+    }
+    
+    /**
+     * Gets cache performance statistics for command definitions.
+     * <p>
+     * Key metrics:
+     * - Hit rate: should be 100% for commands registered multiple times
+     * - Miss rate: only on first registration of each command class
+     * - Load time: time spent parsing annotations
+     * </p>
+     *
+     * @return cache statistics
+     */
+    public CacheStats getDefinitionCacheStats() {
+        return definitionCache.getStats();
+    }
+    
+    /**
+     * Gets the number of cached command definitions.
+     *
+     * @return number of cached definitions
+     */
+    public long getCachedDefinitionCount() {
+        return definitionCache.size();
+    }
+    
+    /**
+     * Clears the command definition cache.
+     * Use this if you need to force re-parsing of all command annotations.
+     */
+    public void clearDefinitionCache() {
+        definitionCache.clear();
     }
 
     private void validateCommandNotRegistered(@NotNull CommandDefinition commandDefinition) {

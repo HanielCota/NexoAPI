@@ -1,5 +1,7 @@
 package com.hanielcota.nexoapi.menu.property;
 
+import com.hanielcota.nexoapi.validation.NumericValidation;
+
 /**
  * Represents the size of a menu in rows.
  * Minecraft inventories have 9 columns, so the total slots = rows * 9.
@@ -9,17 +11,12 @@ package com.hanielcota.nexoapi.menu.property;
  */
 public record MenuSize(int rows) {
 
+    private static final int MIN_ROWS = 1;
     private static final int MAX_ROWS = 6;
     private static final int COLUMNS = 9;
 
     public MenuSize {
-        if (rows <= 0) {
-            throw new IllegalArgumentException("Rows must be greater than zero.");
-        }
-
-        if (rows > MAX_ROWS) {
-            throw new IllegalArgumentException("Rows must not exceed " + MAX_ROWS + ".");
-        }
+        NumericValidation.validateRange(rows, MIN_ROWS, MAX_ROWS, "Menu rows");
     }
 
     /**

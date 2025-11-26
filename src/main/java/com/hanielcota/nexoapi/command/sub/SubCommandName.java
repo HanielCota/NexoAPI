@@ -1,8 +1,7 @@
 package com.hanielcota.nexoapi.command.sub;
 
+import com.hanielcota.nexoapi.validation.NonEmptyString;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Objects;
 
 /**
  * Represents a validated subcommand name.
@@ -13,12 +12,7 @@ import java.util.Objects;
  */
 public record SubCommandName(@NotNull String value) {
     public SubCommandName {
-        Objects.requireNonNull(value, "Subcommand name cannot be null.");
-        String trimmedValue = value.trim();
-        if (trimmedValue.isEmpty()) {
-            throw new IllegalArgumentException("Subcommand name cannot be blank.");
-        }
-        value = trimmedValue.toLowerCase();
+        value = NonEmptyString.validateAndNormalize(value, "Subcommand name");
     }
 
     /**

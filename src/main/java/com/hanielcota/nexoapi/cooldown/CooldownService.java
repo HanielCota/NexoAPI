@@ -42,7 +42,10 @@ public record CooldownService(@NotNull CooldownRegistry registry, @NotNull Clock
 
     /**
      * Checks if a player is currently on cooldown for the specified cooldown ID.
-     * Expired cooldowns are automatically removed.
+     * <p>
+     * Note: With Caffeine Cache, expired cooldowns are automatically removed,
+     * so no manual cleanup is needed. This method is now simpler and faster.
+     * </p>
      *
      * @param player     the player to check
      * @param cooldownId the cooldown ID to check
@@ -53,23 +56,20 @@ public record CooldownService(@NotNull CooldownRegistry registry, @NotNull Clock
         Objects.requireNonNull(player);
         Objects.requireNonNull(cooldownId);
 
-        var now = Instant.now(clock);
         var key = CooldownKey.forPlayer(player, cooldownId);
-        var cooldown = registry.find(key);
-
-        if (cooldown.isEmpty()) return false;
-        if (cooldown.get().isExpired(now)) {
-            registry.remove(key);
-            return false;
-        }
-
-        return true;
+        
+        // Caffeine automatically removes expired entries
+        // If the cooldown exists in cache, it's active
+        return registry.find(key).isPresent();
     }
 
     /**
      * Gets the remaining duration of a cooldown for a player.
-     * Returns Duration.ZERO if the player is not on cooldown or the cooldown has expired.
-     * Expired cooldowns are automatically removed.
+     * Returns Duration.ZERO if the player is not on cooldown.
+     * <p>
+     * Note: With Caffeine Cache, expired cooldowns are automatically removed,
+     * so this will always return accurate remaining time or ZERO.
+     * </p>
      *
      * @param player     the player to check
      * @param cooldownId the cooldown ID to check
@@ -84,18 +84,17 @@ public record CooldownService(@NotNull CooldownRegistry registry, @NotNull Clock
         var key = CooldownKey.forPlayer(player, cooldownId);
         var cooldown = registry.find(key);
 
-        if (cooldown.isEmpty()) return Duration.ZERO;
-        if (cooldown.get().isExpired(now)) {
-            registry.remove(key);
-            return Duration.ZERO;
-        }
-
-        return cooldown.get().remaining(now);
+        // If cooldown exists, it's not expired (Caffeine removes expired entries)
+        return cooldown.map(cd -> cd.remaining(now)).orElse(Duration.ZERO);
     }
 
     /**
      * Attempts to consume a cooldown for a player.
-     * If the player is not on cooldown or the cooldown has expired, a new cooldown is created.
+     * If the player is not on cooldown, a new cooldown is created.
+     * <p>
+     * Performance note: With Caffeine Cache, this is faster than before
+     * as we don't need to manually check expiration.
+     * </p>
      *
      * @param player     the player
      * @param cooldownId the cooldown ID
@@ -108,17 +107,11 @@ public record CooldownService(@NotNull CooldownRegistry registry, @NotNull Clock
         Objects.requireNonNull(cooldownId);
         Objects.requireNonNull(duration);
 
-        var now = Instant.now(clock);
         var key = CooldownKey.forPlayer(player, cooldownId);
         var existing = registry.find(key);
 
-        // Use orElse to safely check expiration without risking NoSuchElementException
-        boolean canConsume = existing.map(cooldown -> cooldown.isExpired(now)).orElse(true);
-
-        if (canConsume) {
-            if (existing.isPresent()) {
-                registry.remove(key);
-            }
+        // If no cooldown exists (or it expired and was auto-removed), we can consume
+        if (existing.isEmpty()) {
             var expiration = CooldownExpiration.fromNow(duration, clock);
             registry.save(new Cooldown(key, expiration));
             return true;
@@ -177,5 +170,32 @@ public record CooldownService(@NotNull CooldownRegistry registry, @NotNull Clock
         }
 
         plugin.getServer().getScheduler().runTaskLater(plugin, action, ticks);
+    }
+    
+    /**
+     * Gets cache performance statistics for the cooldown system.
+     * <p>
+     * Useful metrics include:
+     * - Hit rate: percentage of cooldown checks that found an active cooldown
+     * - Miss rate: percentage of checks where no cooldown existed
+     * - Eviction count: number of cooldowns automatically removed after expiration
+     * </p>
+     *
+     * @return cache statistics
+     */
+    public com.github.benmanes.caffeine.cache.stats.CacheStats getStats() {
+        return registry.getStats();
+    }
+    
+    /**
+     * Gets the current number of active cooldowns in the system.
+     * <p>
+     * Note: This is an estimate due to asynchronous expiration handling.
+     * </p>
+     *
+     * @return estimated number of active cooldowns
+     */
+    public long getActiveCooldownCount() {
+        return registry.size();
     }
 }

@@ -1,5 +1,7 @@
 package com.hanielcota.nexoapi.menu.property;
 
+import com.hanielcota.nexoapi.validation.NumericValidation;
+
 /**
  * Represents a slot index in a menu inventory.
  * Valid slot indices range from 0 to 53 (6 rows * 9 columns - 1).
@@ -10,16 +12,10 @@ package com.hanielcota.nexoapi.menu.property;
 public record MenuSlot(int index) {
 
     private static final int MIN_INDEX = 0;
-    private static final int MAX_INDEX_EXCLUSIVE = 54; // 6 * 9
+    private static final int MAX_INDEX = 53;
 
     public MenuSlot {
-        if (index < MIN_INDEX) {
-            throw new IllegalArgumentException("Index must be zero or positive.");
-        }
-
-        if (index >= MAX_INDEX_EXCLUSIVE) {
-            throw new IllegalArgumentException("Index must be less than " + MAX_INDEX_EXCLUSIVE + ".");
-        }
+        NumericValidation.validateRange(index, MIN_INDEX, MAX_INDEX, "Slot index");
     }
 
     /**
