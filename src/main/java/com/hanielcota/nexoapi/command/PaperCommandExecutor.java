@@ -63,13 +63,20 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
         var commandContext = new CommandContext(sender, commandInput);
         var commandDefinition = registeredCommand.definition();
 
+        var subCommandMap = commandDefinition.subCommands();
+        
+        // If there are no subcommands defined, always execute the root handler
+        if (subCommandMap.isEmpty()) {
+            executeRoot(commandContext, commandDefinition);
+            return true;
+        }
+
         String subCommandToken = commandInput.arguments().firstOrNull();
         if (subCommandToken == null) {
             executeRoot(commandContext, commandDefinition);
             return true;
         }
 
-        var subCommandMap = commandDefinition.subCommands();
         SubCommandInvoker subCommandInvoker = subCommandResolver.resolve(subCommandMap, subCommandToken);
         if (subCommandInvoker == null) {
             sendUnknownSubCommandMessage(commandContext.sender(), subCommandToken);
