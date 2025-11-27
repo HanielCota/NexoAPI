@@ -2,6 +2,7 @@ package com.hanielcota.nexoapi.command.execution;
 
 import com.hanielcota.nexoapi.command.CommandSuggestionsProvider;
 import com.hanielcota.nexoapi.command.model.CommandArguments;
+import com.hanielcota.nexoapi.command.model.CommandInput;
 import com.hanielcota.nexoapi.command.CommandContext;
 import com.hanielcota.nexoapi.command.model.CommandDefinition;
 import com.hanielcota.nexoapi.command.model.RegisteredCommand;
@@ -63,22 +64,46 @@ public final class TabCompletionService {
         Objects.requireNonNull(registeredCommand, "Registered command cannot be null.");
 
         var commandArguments = context.input().arguments();
-        int argumentCount = commandArguments.size();
+        var subCommandMap = definition.subCommands();
 
-        if (shouldSuggestSubCommands(argumentCount, definition)) {
+        // If no subcommands, use custom suggestions from root handler
+        if (subCommandMap.isEmpty()) {
+            return getCustomSuggestions(context, registeredCommand);
+        }
+
+        // Check if first argument is a valid subcommand
+        String firstArg = commandArguments.firstOrNull();
+        if (firstArg != null) {
+            var subCommandName = SubCommandName.from(firstArg);
+            var subCommandInvoker = subCommandMap.findBy(subCommandName);
+            
+            if (subCommandInvoker != null) {
+                // First argument is a valid subcommand, build subcommand context and get its suggestions
+                var subCommandContext = buildSubCommandContext(context);
+                return getCustomSuggestions(subCommandContext, registeredCommand);
+            }
+        }
+
+        // First argument is not a valid subcommand (or no first argument)
+        // Suggest subcommands if we're on the first argument
+        if (commandArguments.size() <= 1) {
             return suggestSubCommands(context, definition, commandArguments);
         }
 
-        return getCustomSuggestions(context, registeredCommand);
+        // More than one argument and first is not a valid subcommand
+        // Return empty list (no suggestions)
+        return List.of();
     }
 
-    private boolean shouldSuggestSubCommands(int argumentCount, @NotNull CommandDefinition definition) {
-        if (argumentCount > 1) {
-            return false;
-        }
-
-        var subCommandMap = definition.subCommands();
-        return !subCommandMap.isEmpty();
+    @NotNull
+    private CommandContext buildSubCommandContext(@NotNull CommandContext originalContext) {
+        var originalInput = originalContext.input();
+        var originalLabel = originalInput.label();
+        var originalArguments = originalInput.arguments();
+        var filteredArguments = originalArguments.withoutFirst();
+        var newInput = new CommandInput(originalLabel, filteredArguments);
+        var originalSender = originalContext.sender();
+        return new CommandContext(originalSender, newInput);
     }
 
     @NotNull

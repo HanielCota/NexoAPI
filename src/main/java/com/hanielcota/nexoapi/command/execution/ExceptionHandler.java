@@ -57,7 +57,11 @@ public final class ExceptionHandler {
     }
 
     private void sendErrorMessage(@NotNull CommandSender sender, @NotNull Exception exception) {
-        String message = "§cErro ao executar comando: §7" + exception.getMessage();
+        String exceptionMessage = exception.getMessage();
+        if (exceptionMessage == null || exceptionMessage.isBlank()) {
+            exceptionMessage = exception.getClass().getSimpleName();
+        }
+        String message = "§cErro ao executar comando: §7" + exceptionMessage;
         sender.sendMessage(message);
     }
 
