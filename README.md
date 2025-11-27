@@ -275,11 +275,12 @@ public class MyPlugin extends JavaPlugin {
             .build();
         
         // Criar skull customizada (com cache automático)
-        NexoItem skull = NexoSkullBuilder.create()
+        ItemStack skull = NexoSkullBuilder.create()
             .withTextureUrl("45cd2ea036fce9970776d64a6f0e99b4b213e0676033fa346be17cd31e201962")
             .withName("<blue>Cabeça Customizada")
             .withLore("<gray>Uma cabeça especial")
-            .buildSync();
+            .buildSync()
+            .build();
     }
 }
 ```
@@ -303,9 +304,10 @@ ItemStack item = NexoItem.from(Material.DIAMOND)
     .build();
 
 // Skulls com cache (super rápido!)
-NexoItem skull = NexoSkullBuilder.create()
+ItemStack skull = NexoSkullBuilder.create()
     .withTextureUrl("hash_da_textura")
-    .buildSync();
+    .buildSync()
+    .build();
 
 // Comandos sem plugin.yml
 @NexoCommand(name = "meucomando")
@@ -453,11 +455,11 @@ NexoTitle.of("<green>Anúncio", "<gray>Novo evento começou!")
     .sendTo(getServer().getOnlinePlayers());
 
 // Apenas título (sem subtítulo)
-NexoTitle.ofTitle("<red>Atenção!")
+NexoTitle.of("<red>Atenção!", null)
     .sendTo(player);
 
 // Apenas subtítulo
-NexoTitle.ofSubtitle("<gray>Mensagem importante")
+NexoTitle.of(null, "<gray>Mensagem importante")
     .sendTo(player);
 ```
 
@@ -553,6 +555,8 @@ ItemStack itemWithList = NexoItem.from(Material.DIAMOND)
 
 ### 💀 Skull Builder
 
+> **Nota:** `NexoSkullBuilder` retorna `NexoItem`, então você precisa chamar `.build()` para obter o `ItemStack` final. Para métodos assíncronos, você pode usar `buildAsyncItem()` para obter `ItemStack` diretamente.
+
 ```java
 import com.hanielcota.nexoapi.item.skull.NexoSkullBuilder;
 import com.hanielcota.nexoapi.item.skull.value.SkullOwner;
@@ -562,49 +566,56 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 // Criar cabeça vazia
-NexoItem emptySkull = NexoSkullBuilder.create()
-    .buildSync();
+ItemStack emptySkull = NexoSkullBuilder.create()
+    .buildSync()
+    .build();
 
 // Criar cabeça a partir de texture (base64) com nome
-NexoItem skullFromTexture = NexoSkullBuilder.create()
+ItemStack skullFromTexture = NexoSkullBuilder.create()
     .withTexture("eyJ0ZXh0dXJlcyI6...")
     .withName("<blue>Cabeça Customizada")
-    .buildSync();
+    .buildSync()
+    .build();
 
 // Criar cabeça a partir de SkullTexture com nome e lore (usando varargs - mais simples!)
 SkullTexture texture = SkullTexture.of("eyJ0ZXh0dXJlcyI6...");
-NexoItem skullFromTextureObj = NexoSkullBuilder.create()
+ItemStack skullFromTextureObj = NexoSkullBuilder.create()
     .withTexture(texture)
     .withName("<gold>Cabeça com Texture")
     .withLore("<gray>Uma cabeça especial", "<yellow>Com lore customizada")
-    .buildSync();
+    .buildSync()
+    .build();
 
 // Criar cabeça a partir de URL de textura do Minecraft (URL completa)
-NexoItem skullFromUrl = NexoSkullBuilder.create()
+ItemStack skullFromUrl = NexoSkullBuilder.create()
     .withTextureUrl("http://textures.minecraft.net/texture/45cd2ea036fce9970776d64a6f0e99b4b213e0676033fa346be17cd31e201962")
     .withName("<green>Cabeça da URL")
-    .buildSync();
+    .buildSync()
+    .build();
 
 // Criar cabeça a partir de apenas o hash da textura (mais simples!)
-NexoItem skullFromHash = NexoSkullBuilder.create()
+ItemStack skullFromHash = NexoSkullBuilder.create()
     .withTextureUrl("45cd2ea036fce9970776d64a6f0e99b4b213e0676033fa346be17cd31e201962")
     .withName("<yellow>Cabeça do Hash")
     .withLore("<gray>Hash da textura")
-    .buildSync();
+    .buildSync()
+    .build();
 
 // Ou usando SkullTexture.fromUrl() com URL completa
 SkullTexture textureFromUrl = SkullTexture.fromUrl("http://textures.minecraft.net/texture/45cd2ea036fce9970776d64a6f0e99b4b213e0676033fa346be17cd31e201962");
-NexoItem skullFromUrlObj = NexoSkullBuilder.create()
+ItemStack skullFromUrlObj = NexoSkullBuilder.create()
     .withTexture(textureFromUrl)
     .withName("<blue>Cabeça da URL (objeto)")
-    .buildSync();
+    .buildSync()
+    .build();
 
 // Ou usando SkullTexture.fromUrl() com apenas o hash
 SkullTexture textureFromHash = SkullTexture.fromUrl("45cd2ea036fce9970776d64a6f0e99b4b213e0676033fa346be17cd31e201962");
-NexoItem skullFromHashObj = NexoSkullBuilder.create()
+ItemStack skullFromHashObj = NexoSkullBuilder.create()
     .withTexture(textureFromHash)
     .withName("<cyan>Cabeça do Hash (objeto)")
-    .buildSync();
+    .buildSync()
+    .build();
 
 // Criar cabeça a partir de owner (UUID) - requer buildAsync()
 UUID playerUUID = player.getUniqueId();
@@ -627,6 +638,16 @@ NexoItem skullAsync = NexoSkullBuilder.create()
     .withName("<green>Cabeça do Jogador")
     .buildAsync()
     .join(); // Aguardar sincronamente (não recomendado em produção)
+
+// Ou usar buildAsyncItem() para obter ItemStack diretamente
+CompletableFuture<ItemStack> skullItemFuture = NexoSkullBuilder.create()
+    .withOwner(owner)
+    .withName("<blue>Cabeça do Jogador")
+    .buildAsyncItem();
+
+skullItemFuture.thenAccept(item -> {
+    player.getInventory().addItem(item);
+});
 ```
 
 ### 🎵 Sons
@@ -746,22 +767,30 @@ public class SchedulerExample extends JavaPlugin {
                 getLogger().info("Executado após 1 segundo em thread assíncrona!");
             });
         
-        // Tarefa repetitiva
-        NexoTask.sync()
+        // Tarefa repetitiva (retorna ScheduledTask)
+        ScheduledTask repeatingTask = NexoTask.sync()
             .interval(20) // A cada 1 segundo
             .start(this, (task) -> {
                 // Atualizar algo periodicamente
                 getServer().broadcastMessage("<green>Atualização periódica!");
             });
         
-        // Tarefa com delay inicial e intervalo
-        NexoTask.async()
+        // Cancelar tarefa depois de 5 minutos
+        NexoTask.sync()
+            .delay(6000) // 5 minutos
+            .start(this, () -> repeatingTask.cancel());
+        
+        // Tarefa com delay inicial e intervalo (retorna ScheduledTask)
+        ScheduledTask backgroundTask = NexoTask.async()
             .delay(100) // 5 segundos de delay
             .interval(60) // A cada 3 segundos
             .start(this, (task) -> {
                 // Processar dados em background
                 processData();
             });
+        
+        // Cancelar quando necessário
+        // backgroundTask.cancel();
     }
 }
 ```
@@ -1490,7 +1519,7 @@ public class ShopMenu extends StaticMenu {
     
     public ShopMenu() {
         super(
-            MenuTitle.of("<gold>Loja"),
+            MenuTitle.ofMiniMessage("<gold>Loja"),
             MenuSize.ofRows(3),
             createLayout()
         );
@@ -1544,7 +1573,7 @@ public class ItemsMenu extends PaginatedMenu<Material> {
     
     public ItemsMenu() {
         super(
-            MenuTitle.of("<gold>Itens Disponíveis"),
+            MenuTitle.ofMiniMessage("<gold>Itens Disponíveis"),
             MenuSize.ofRows(4),
             PaginatedItems.from(List.of(
                 Material.DIAMOND,
@@ -1597,7 +1626,7 @@ public class CustomMenu extends NexoMenu {
     
     public CustomMenu() {
         super(
-            MenuTitle.of("<green>Menu Customizado"),
+            MenuTitle.ofMiniMessage("<green>Menu Customizado"),
             MenuSize.ofRows(3)
         );
     }
