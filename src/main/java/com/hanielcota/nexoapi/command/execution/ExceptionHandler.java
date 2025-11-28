@@ -75,4 +75,3 @@ public final class ExceptionHandler {
         ownerPlugin.getLogger().log(Level.SEVERE, exception.getMessage(), exception);
     }
 }
-

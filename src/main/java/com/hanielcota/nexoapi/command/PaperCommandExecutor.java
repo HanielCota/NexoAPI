@@ -102,7 +102,6 @@ public final class PaperCommandExecutor implements CommandExecutor, TabCompleter
         return tabCompletionService.suggest(commandContext, commandDefinition, registeredCommand);
     }
 
-
     private CommandContext buildSubCommandContext(@NotNull CommandContext originalContext) {
         var originalInput = originalContext.input();
         var originalLabel = originalInput.label();

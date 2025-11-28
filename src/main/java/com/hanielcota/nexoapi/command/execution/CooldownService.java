@@ -125,4 +125,3 @@ public final class CooldownService {
         return getRemainingCooldown(player, commandName, cooldownSeconds) > 0;
     }
 }
-

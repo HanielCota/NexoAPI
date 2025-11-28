@@ -184,4 +184,3 @@ public final class TabCompletionService {
         return suggestions;
     }
 }
-

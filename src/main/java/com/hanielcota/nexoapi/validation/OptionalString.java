@@ -87,4 +87,3 @@ public final class OptionalString {
         return !isEmpty(value);
     }
 }
-
