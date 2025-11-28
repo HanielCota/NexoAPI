@@ -4,6 +4,8 @@ import com.hanielcota.nexoapi.text.MiniMessageText;
 import net.kyori.adventure.audience.Audience;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
+
 /**
  * Represents a tab list header and footer that can be displayed to players.
  * Tab list headers and footers appear above and below the player list.
@@ -107,5 +109,22 @@ public record NexoTabList(
                 header.toComponent(),
                 footer.toComponent()
         );
+    }
+
+    /**
+     * Updates the tab list for all audiences in the specified collection.
+     * This method iterates through all audiences and sends the tab list to each one.
+     * Null audiences in the collection are ignored.
+     *
+     * @param audiences the collection of audiences to update the tab list for
+     */
+    public void updateAll(@Nullable Collection<? extends Audience> audiences) {
+        if (audiences == null || audiences.isEmpty()) {
+            return;
+        }
+
+        for (Audience audience : audiences) {
+            sendTo(audience);
+        }
     }
 }
